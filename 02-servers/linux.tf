@@ -23,9 +23,9 @@ data "aws_ami" "ubuntu_ami" {
 }
 
 # EC2 INSTANCE CONFIGURATION
-# This resource block defines an AWS EC2 instance named "linux_ad_instance".
+# This resource block defines an AWS EC2 instance named "efs_client_instance".
 
-resource "aws_instance" "linux_ad_instance" {
+resource "aws_instance" "efs_client_instance" {
 
   # AMAZON MACHINE IMAGE (AMI)
   # Reference the Ubuntu AMI ID fetched dynamically via the data source.
@@ -76,19 +76,22 @@ resource "aws_instance" "linux_ad_instance" {
   # This script is dynamically templated with values required for setup:
   # - `admin_secret`: The administrator credentials secret
   # - `domain_fqdn`: The fully qualified domain name (FQDN) for the environment.
-  # - `computers_ou`: The Organizational Unit where computers are registered in Active Directory.
+  # - `efs_mnt_server`: The DNS name of the EFS mount target.
 
   user_data = templatefile("./scripts/userdata.sh", {
     admin_secret   = "admin_ad_credentials"                   # The administrator credentials secret
-    domain_fqdn    = "mcloud.mikecloud.com"                   # The domain FQDN for Active Directory integration.
+    domain_fqdn    = var.dns_zone                             # The domain FQDN for Active Directory integration.
     efs_mnt_server = aws_efs_mount_target.efs_mnt_1.dns_name  # EFS mount target DNS name
+    netbios        = var.netbios
+    realm          = var.realm
+    force_group    = "mcloud-users"
   })
 
   # INSTANCE TAGS
   # Metadata tag used to identify and organize resources in AWS.
 
   tags = {
-    Name = "linux-ad-instance" # The EC2 instance name in AWS.
+    Name = "efs-client-instance" # The EC2 instance name in AWS.
   }
 
   depends_on = [ aws_efs_file_system.efs ]

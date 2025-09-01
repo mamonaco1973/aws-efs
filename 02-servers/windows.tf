@@ -69,5 +69,5 @@ resource "aws_instance" "windows_ad_instance" {
     Name = "windows-ad-instance" # The EC2 instance name in AWS.
   }
 
-   depends_on = [ aws_efs_file_system.efs ]
+   depends_on = [ aws_instance.efs_client_instance ]
 }

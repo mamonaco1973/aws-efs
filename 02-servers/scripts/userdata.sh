@@ -29,9 +29,10 @@ export DEBIAN_FRONTEND=noninteractive
 # - packagekit: Package management toolkit.
 # - krb5-user: Kerberos authentication tools.
 # - nano, vim: Text editors for configuration file editing.
-apt-get install less unzip realmd sssd-ad sssd-tools libnss-sss \
+apt-get install -y less unzip realmd sssd-ad sssd-tools libnss-sss \
     libpam-sss adcli samba-common-bin samba-libs oddjob \
-    oddjob-mkhomedir packagekit krb5-user nano vim nfs-common -y
+    oddjob-mkhomedir packagekit krb5-user nano vim nfs-common \
+    winbind libpam-winbind libnss-winbind
 
 # ---------------------------------------------------------------------------------
 # Section 2: Install AWS CLI
@@ -85,9 +86,12 @@ admin_username=$(echo $secretValue | jq -r '.username' | sed 's/.*\\//')
 # Join the Active Directory domain using the `realm` command.
 # - ${domain_fqdn}: The fully qualified domain name (FQDN) of the AD domain.
 # - Log the output and errors to /tmp/join.log for debugging.
-echo -e "$admin_password" | sudo /usr/sbin/realm join -U "$admin_username" \
-    ${domain_fqdn} --verbose \
-    >> /tmp/join.log 2>> /tmp/join.log
+#echo -e "$admin_password" | sudo /usr/sbin/realm join -U "$admin_username" \
+#    ${domain_fqdn} --verbose \
+#    >> /tmp/join.log 2>> /tmp/join.log
+
+echo -e "$admin_password" | sudo /usr/sbin/realm join --membership-software=samba -U "$admin_username" \
+    ${domain_fqdn} --verbose >> /tmp/join.log 2>> /tmp/join.log
 
 # ---------------------------------------------------------------------------------
 # Section 5: Allow Password Authentication for AD Users
@@ -123,8 +127,158 @@ chmod 600 /etc/skel/.Xauthority
 # Restart the SSSD and SSH services to apply the changes.
 
 sudo pam-auth-update --enable mkhomedir
-sudo systemctl restart sssd
 sudo systemctl restart ssh
+
+# ---------------------------------------------------------------------------------
+# Section 8: Configure file server
+# ---------------------------------------------------------------------------------
+
+sudo systemctl stop sssd
+
+cat <<EOT >  /tmp/smb.conf
+# See smb.conf.example for a more detailed config file or
+# read the smb.conf manpage.
+# Run 'testparm' to verify the config is correct after
+# you modified it.
+
+[global]
+workgroup = ${netbios}
+security = ads
+
+passdb backend = tdbsam
+
+printing = cups
+printcap name = cups
+load printers = yes
+cups options = raw
+
+kerberos method = secrets and keytab
+
+template homedir = /home/%U
+template shell = /bin/bash
+#netbios 
+
+create mask = 0770
+force create mode = 0770
+directory mask = 0770
+force group = ${force_group}
+
+realm = ${realm}
+
+#idmap backend = tdb
+#idmap gid = 10000-2000000
+#idmap uid = 10000-2000000
+
+idmap config ${realm} : backend = sss
+idmap config ${realm} : range = 10000-1999999999
+
+idmap config * : range = 1-9999
+idmap config * : backend = tdb
+
+min domain uid = 0
+winbind use default domain = no
+winbind refresh tickets = yes
+winbind offline logon = yes
+winbind enum groups = no
+winbind enum users = no
+
+[homes]
+comment = Home Directories
+browseable = No
+read only = No
+inherit acls = Yes
+
+[efs]
+comment = Mounted EFS area
+path = /efs
+read only = no
+guest ok = no
+EOT
+
+sudo cp /tmp/smb.conf /etc/samba/smb.conf
+sudo rm /tmp/smb.conf
+head /etc/hostname -c 15 > /tmp/netbios-name
+value=$(</tmp/netbios-name)
+export netbios="${value^^}"
+sudo sed -i "s/#netbios/netbios name=$netbios/g" /etc/samba/smb.conf
+
+cat <<EOT >  /tmp/nsswitch.conf
+#
+# /etc/nsswitch.conf
+#
+# An example Name Service Switch config file. This file should be
+# sorted with the most-used services at the beginning.
+#
+# The entry '[NOTFOUND=return]' means that the search for an
+# entry should stop if the search in the previous entry turned
+# up nothing. Note that if the search failed due to some other reason
+# (like no NIS server responding) then the search continues with the
+# next entry.
+#
+# Valid entries include:
+#
+#	nisplus			Use NIS+ (NIS version 3)
+#	nis			Use NIS (NIS version 2), also called YP
+#	dns			Use DNS (Domain Name Service)
+#	files			Use the local files
+#	db			Use the local database (.db) files
+#	compat			Use NIS on compat mode
+#	hesiod			Use Hesiod for user lookups
+#	[NOTFOUND=return]	Stop searching if not found so far
+#
+
+# To use db, put the "db" in front of "files" for entries you want to be
+# looked up first in the databases
+#
+# Example:
+#passwd:    db files nisplus nis
+#shadow:    db files nisplus nis
+#group:     db files nisplus nis
+
+#passwd:     files sss winbind
+passwd:     files sss winbind
+group:      files sss winbind
+automount:  files sss winbind
+shadow:     files sss winbind
+
+#group:      files sss winbind
+
+#hosts:     db files nisplus nis dns
+hosts:      files dns myhostname
+
+# Example - obey only what nisplus tells us...
+#services:   nisplus [NOTFOUND=return] files
+#networks:   nisplus [NOTFOUND=return] files
+#protocols:  nisplus [NOTFOUND=return] files
+#rpc:        nisplus [NOTFOUND=return] files
+#ethers:     nisplus [NOTFOUND=return] files
+#netmasks:   nisplus [NOTFOUND=return] files
+
+bootparams: nisplus [NOTFOUND=return] files
+
+ethers:     files
+netmasks:   files
+networks:   files
+protocols:  files
+rpc:        files
+services:   files sss
+
+netgroup:   files sss
+
+publickey:  nisplus
+
+#automount:  files sss
+aliases:    files nisplus
+
+EOT
+
+sudo cp /tmp/nsswitch.conf /etc/nsswitch.conf
+sudo rm /tmp/nsswitch.conf
+
+sudo systemctl restart winbind
+sudo systemctl restart smb
+sudo systemctl restart nmb
+sudo systemctl restart sssd
 
 # ---------------------------------------------------------------------------------
 # Section 7: Grant Sudo Privileges to AD Linux Admins
