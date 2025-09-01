@@ -41,6 +41,15 @@ resource "aws_security_group" "ad_ssh_sg" {
     cidr_blocks = ["0.0.0.0/0"]             # WARNING: Allows traffic from ANY IP address (highly insecure!)
   }
 
+  # INGRESS: Defines inbound rules allowing access to port 445 (SMB)
+  ingress {
+    description = "Allow SMB from anywhere" # This rule permits SMB access from all IPs
+    from_port   = 445                        # Start of port range (SMB default port)
+    to_port     = 445                        # End of port range (same as start for a single port)
+    protocol    = "tcp"                     # Protocol type (TCP for SMB)
+    cidr_blocks = ["0.0.0.0/0"]             # WARNING: Allows traffic from ANY IP address (highly insecure!)
+  }
+
   # EGRESS: Allows all outbound traffic (default open rule)
   egress {
     from_port   = 0             # Start of port range (0 means all ports)

@@ -35,12 +35,12 @@ fi
 # Lookup Linux AD Instance
 # --------------------------------------------------------------------------------------------------
 linux_dns=$(aws ec2 describe-instances \
-  --filters "Name=tag:Name,Values=linux-ad-instance" \
+  --filters "Name=tag:Name,Values=efs-client-instance" \
   --query 'Reservations[].Instances[].PublicDnsName' \
   --output text)
 
 if [ -z "$linux_dns" ]; then
-  echo "WARN: No Linux AD instance found with tag Name=linux-ad-instance"
+  echo "WARN: No EFS client instance found with tag Name=efs-client-instance"
 else
-  echo "NOTE: Linux Instance DNS:   $(echo $linux_dns | xargs)"
+  echo "NOTE: EFS Client Instance DNS:   $(echo $linux_dns | xargs)"
 fi
