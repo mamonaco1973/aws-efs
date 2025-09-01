@@ -199,7 +199,7 @@ sudo cp /tmp/smb.conf /etc/samba/smb.conf
 sudo rm /tmp/smb.conf
 head /etc/hostname -c 15 > /tmp/netbios-name
 value=$(</tmp/netbios-name)
-export netbios="${value^^}"
+export netbios="$${value^^}"
 sudo sed -i "s/#netbios/netbios name=$netbios/g" /etc/samba/smb.conf
 
 cat <<EOT >  /tmp/nsswitch.conf
