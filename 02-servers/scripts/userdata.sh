@@ -7,7 +7,6 @@ snap install amazon-ssm-agent --classic
 systemctl enable snap.amazon-ssm-agent.amazon-ssm-agent.service
 systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
 
-
 # This script automates the process of updating the OS, installing required packages,
 # joining an Active Directory (AD) domain, configuring system settings, and cleaning
 # up permissions.
@@ -32,7 +31,7 @@ export DEBIAN_FRONTEND=noninteractive
 # - nano, vim: Text editors for configuration file editing.
 apt-get install less unzip realmd sssd-ad sssd-tools libnss-sss \
     libpam-sss adcli samba-common-bin samba-libs oddjob \
-    oddjob-mkhomedir packagekit krb5-user nano vim -y
+    oddjob-mkhomedir packagekit krb5-user nano vim nfs-common -y
 
 # ---------------------------------------------------------------------------------
 # Section 2: Install AWS CLI
@@ -55,7 +54,21 @@ sudo ./aws/install
 rm -f -r awscliv2.zip aws
 
 # ---------------------------------------------------------------------------------
-# Section 3: Join the Active Directory Domain
+# Section 3: Mount EFS file system
+# ---------------------------------------------------------------------------------
+
+mkdir -p /efs
+echo "${efs_mnt_server}:/ /efs nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport 0 0" | sudo tee -a /etc/fstab
+systemctl daemon-reload
+mount /efs
+mkdir -p /efs/home
+mkdir -p /efs/data
+echo "${efs_mnt_server}:/home /home nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport 0 0" | sudo tee -a /etc/fstab
+systemctl daemon-reload
+mount /home
+
+# ---------------------------------------------------------------------------------
+# Section 4: Join the Active Directory Domain
 # ---------------------------------------------------------------------------------
 
 # Retrieve the secret value (AD admin credentials) from AWS Secrets Manager.
@@ -77,7 +90,7 @@ echo -e "$admin_password" | sudo /usr/sbin/realm join -U "$admin_username" \
     >> /tmp/join.log 2>> /tmp/join.log
 
 # ---------------------------------------------------------------------------------
-# Section 4: Allow Password Authentication for AD Users
+# Section 5: Allow Password Authentication for AD Users
 # ---------------------------------------------------------------------------------
 
 # Modify the SSH configuration to allow password authentication for AD users.
@@ -86,7 +99,7 @@ sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' \
     /etc/ssh/sshd_config.d/60-cloudimg-settings.conf
 
 # ---------------------------------------------------------------------------------
-# Section 5: Configure SSSD for AD Integration
+# Section 6: Configure SSSD for AD Integration
 # ---------------------------------------------------------------------------------
 
 # Modify the SSSD configuration file to simplify user login and home directory creation.
@@ -114,12 +127,25 @@ sudo systemctl restart sssd
 sudo systemctl restart ssh
 
 # ---------------------------------------------------------------------------------
-# Section 6: Grant Sudo Privileges to AD Linux Admins
+# Section 7: Grant Sudo Privileges to AD Linux Admins
 # ---------------------------------------------------------------------------------
 
 # Add a sudoers rule to grant passwordless sudo access to members of the
 # "linux-admins" AD group.
 sudo echo "%linux-admins ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/10-linux-admins
+
+# ---------------------------------------------------------------------------------
+# Section 8: Force home directory creation in NFS and set default permissions
+# ---------------------------------------------------------------------------------
+
+su -c "exit" rpatel
+su -c "exit" jsmith
+su -c "exit" akumar
+su -c "exit" edavis
+chgrp mcloud-users /efs
+chgrp mcloud-users /efs/data 
+chmod 770 /efs
+chmod 770 /efs/data 
 
 # ---------------------------------------------------------------------------------
 # End of Script

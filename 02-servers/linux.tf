@@ -79,8 +79,9 @@ resource "aws_instance" "linux_ad_instance" {
   # - `computers_ou`: The Organizational Unit where computers are registered in Active Directory.
 
   user_data = templatefile("./scripts/userdata.sh", {
-    admin_secret = "admin_ad_credentials" # The administrator credentials secret
-    domain_fqdn  = "mcloud.mikecloud.com" # The domain FQDN for Active Directory integration.
+    admin_secret   = "admin_ad_credentials"                   # The administrator credentials secret
+    domain_fqdn    = "mcloud.mikecloud.com"                   # The domain FQDN for Active Directory integration.
+    efs_mnt_server = aws_efs_mount_target.efs_mnt_1.dns_name  # EFS mount target DNS name
   })
 
   # INSTANCE TAGS
@@ -89,4 +90,6 @@ resource "aws_instance" "linux_ad_instance" {
   tags = {
     Name = "linux-ad-instance" # The EC2 instance name in AWS.
   }
+
+  depends_on = [ aws_efs_file_system.efs ]
 }
