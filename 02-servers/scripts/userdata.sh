@@ -30,7 +30,7 @@ export DEBIAN_FRONTEND=noninteractive
 # - krb5-user: Kerberos authentication tools.
 # - nano, vim: Text editors for configuration file editing.
 apt-get install -y less unzip realmd sssd-ad sssd-tools libnss-sss \
-    libpam-sss adcli samba-common-bin samba-libs oddjob \
+    libpam-sss adcli samba samba-common-bin samba-libs oddjob \
     oddjob-mkhomedir packagekit krb5-user nano vim nfs-common \
     winbind libpam-winbind libnss-winbind
 
