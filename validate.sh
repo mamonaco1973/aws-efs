@@ -9,7 +9,7 @@
 #   - AWS CLI installed and configured with credentials/permissions.
 #   - Instances must be tagged with:
 #       * Name = windows-ad-instance
-#       * Name = linux-ad-instance
+#       * Name = efs-client-instance
 # --------------------------------------------------------------------------------------------------
 
 # --------------------------------------------------------------------------------------------------

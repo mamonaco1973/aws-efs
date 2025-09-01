@@ -67,13 +67,13 @@ resource "aws_efs_file_system" "efs" {
 # ===================================================================
 resource "aws_efs_mount_target" "efs_mnt_1" {
   file_system_id  = aws_efs_file_system.efs.id
-  subnet_id       = data.aws_subnet.vm_subnet_1.id   # Reference your specific subnet
+  subnet_id       = data.aws_subnet.vm_subnet_1.id # Reference your specific subnet
   security_groups = [aws_security_group.efs_sg.id]
 }
 
 resource "aws_efs_mount_target" "efs_mnt_2" {
   file_system_id  = aws_efs_file_system.efs.id
-  subnet_id       = data.aws_subnet.vm_subnet_2.id   # Reference your specific subnet
+  subnet_id       = data.aws_subnet.vm_subnet_2.id # Reference your specific subnet
   security_groups = [aws_security_group.efs_sg.id]
 }
 

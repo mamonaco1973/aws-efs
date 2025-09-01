@@ -50,8 +50,7 @@ resource "aws_instance" "efs_client_instance" {
   # 2. `ad_ssm_sg` - Allows AWS Systems Manager access for remote management.
 
   vpc_security_group_ids = [
-    aws_security_group.ad_ssh_sg.id,
-    aws_security_group.ad_ssm_sg.id
+    aws_security_group.ad_ssh_sg.id
   ]
 
   # PUBLIC IP ASSIGNMENT
@@ -79,9 +78,9 @@ resource "aws_instance" "efs_client_instance" {
   # - `efs_mnt_server`: The DNS name of the EFS mount target.
 
   user_data = templatefile("./scripts/userdata.sh", {
-    admin_secret   = "admin_ad_credentials"                   # The administrator credentials secret
-    domain_fqdn    = var.dns_zone                             # The domain FQDN for Active Directory integration.
-    efs_mnt_server = aws_efs_mount_target.efs_mnt_1.dns_name  # EFS mount target DNS name
+    admin_secret   = "admin_ad_credentials"                  # The administrator credentials secret
+    domain_fqdn    = var.dns_zone                            # The domain FQDN for Active Directory integration.
+    efs_mnt_server = aws_efs_mount_target.efs_mnt_1.dns_name # EFS mount target DNS name
     netbios        = var.netbios
     realm          = var.realm
     force_group    = "mcloud-users"
@@ -94,5 +93,5 @@ resource "aws_instance" "efs_client_instance" {
     Name = "efs-client-instance" # The EC2 instance name in AWS.
   }
 
-  depends_on = [ aws_efs_file_system.efs ]
+  depends_on = [aws_efs_file_system.efs]
 }

@@ -29,8 +29,7 @@ resource "aws_instance" "windows_ad_instance" {
   # 2. `ad_ssm_sg` - Allows AWS Systems Manager access for remote management.
 
   vpc_security_group_ids = [
-    aws_security_group.ad_rdp_sg.id,
-    aws_security_group.ad_ssm_sg.id
+    aws_security_group.ad_rdp_sg.id
   ]
 
   # PUBLIC IP ASSIGNMENT
@@ -69,5 +68,5 @@ resource "aws_instance" "windows_ad_instance" {
     Name = "windows-ad-instance" # The EC2 instance name in AWS.
   }
 
-   depends_on = [ aws_instance.efs_client_instance ]
+  depends_on = [aws_instance.efs_client_instance]
 }
