@@ -14,7 +14,7 @@ resource "aws_instance" "windows_ad_instance" {
   # "t2.medium" is selected to provide more RAM and CPU power, 
   # since Windows requires more resources than Linux.
 
-  instance_type = "t2.medium"
+  instance_type = "t3.medium"
 
   # NETWORK CONFIGURATION - SUBNET
   # Specifies the AWS subnet where the instance will be deployed.

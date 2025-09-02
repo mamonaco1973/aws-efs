@@ -15,6 +15,8 @@ systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
 # Section 1: Update the OS and Install Required Packages
 # ---------------------------------------------------------------------------------
 
+curl -s https://packagecloud.io/install/repositories/orchardit/general/script.deb.sh | sudo bash
+
 # Update the package list to ensure the latest versions of packages are available.
 apt-get update -y
 
@@ -32,7 +34,7 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get install -y less unzip realmd sssd-ad sssd-tools libnss-sss \
     libpam-sss adcli samba samba-common-bin samba-libs oddjob \
     oddjob-mkhomedir packagekit krb5-user nano vim nfs-common \
-    winbind libpam-winbind libnss-winbind
+    winbind libpam-winbind libnss-winbind amazon-efs-utils
 
 # ---------------------------------------------------------------------------------
 # Section 2: Install AWS CLI
@@ -59,12 +61,12 @@ rm -f -r awscliv2.zip aws
 # ---------------------------------------------------------------------------------
 
 mkdir -p /efs
-echo "${efs_mnt_server}:/ /efs nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport 0 0" | sudo tee -a /etc/fstab
+echo "${efs_mnt_server}:/ /efs efs   _netdev,tls  0 0" | sudo tee -a /etc/fstab
 systemctl daemon-reload
 mount /efs
 mkdir -p /efs/home
 mkdir -p /efs/data
-echo "${efs_mnt_server}:/home /home nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport 0 0" | sudo tee -a /etc/fstab
+echo "${efs_mnt_server}:/home /home  efs   _netdev,tls  0 0" | sudo tee -a /etc/fstab
 systemctl daemon-reload
 mount /home
 
@@ -144,6 +146,12 @@ cat <<EOT >  /tmp/smb.conf
 [global]
 workgroup = ${netbios}
 security = ads
+
+strict sync = no
+sync always = no
+aio read size = 1
+aio write size = 1
+use sendfile = yes
 
 passdb backend = tdbsam
 

@@ -36,7 +36,7 @@ resource "aws_instance" "efs_client_instance" {
   # Defines the compute power of the EC2 instance. 
   # "t2.micro" is selected as a cost-effective option with minimal resources.
 
-  instance_type = "t2.micro"
+  instance_type = "t3.medium"
 
   # NETWORK CONFIGURATION - SUBNET
   # Specifies the AWS subnet where the instance will be deployed.
