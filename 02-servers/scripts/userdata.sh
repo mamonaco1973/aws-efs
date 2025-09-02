@@ -15,7 +15,7 @@ systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
 # Section 1: Update the OS and Install Required Packages
 # ---------------------------------------------------------------------------------
 
-curl -s https://packagecloud.io/install/repositories/orchardit/general/script.deb.sh | sudo bash
+curl -s https://packagecloud.io/install/repositories/meter/public/script.deb.sh | sudo bash
 
 # Update the package list to ensure the latest versions of packages are available.
 apt-get update -y
