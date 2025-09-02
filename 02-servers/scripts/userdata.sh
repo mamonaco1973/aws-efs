@@ -15,8 +15,6 @@ systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
 # Section 1: Update the OS and Install Required Packages
 # ---------------------------------------------------------------------------------
 
-curl -s https://packagecloud.io/install/repositories/meter/public/script.deb.sh | sudo bash
-
 # Update the package list to ensure the latest versions of packages are available.
 apt-get update -y
 
@@ -34,7 +32,13 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get install -y less unzip realmd sssd-ad sssd-tools libnss-sss \
     libpam-sss adcli samba samba-common-bin samba-libs oddjob \
     oddjob-mkhomedir packagekit krb5-user nano vim nfs-common \
-    winbind libpam-winbind libnss-winbind amazon-efs-utils
+    winbind libpam-winbind libnss-winbind stunnel4   >> /root/userdata.log 2>&1
+ 
+cd /tmp
+git clone https://github.com/mamonaco1973/amazon-efs-utils.git
+cd amazon-efs-utils
+sudo dpkg -i amazon-efs-utils*.deb   >> /root/userdata.log 2>&1
+which mount.efs  >> /root/userdata.log 2>&1
 
 # ---------------------------------------------------------------------------------
 # Section 2: Install AWS CLI
