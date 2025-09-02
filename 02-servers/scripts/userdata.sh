@@ -292,6 +292,7 @@ sudo echo "%linux-admins ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/10-linux-admi
 # Section 8: Force home directory creation in NFS and set default permissions
 # ---------------------------------------------------------------------------------
 
+sudo sed -i 's/^\(\s*HOME_MODE\s*\)[0-9]\+/\10700/' /etc/login.defs
 su -c "exit" rpatel
 su -c "exit" jsmith
 su -c "exit" akumar
@@ -300,6 +301,7 @@ chgrp mcloud-users /efs
 chgrp mcloud-users /efs/data 
 chmod 770 /efs
 chmod 770 /efs/data 
+chmod 700 /home/*
 
 # ---------------------------------------------------------------------------------
 # End of Script
