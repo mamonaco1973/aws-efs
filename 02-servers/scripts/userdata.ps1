@@ -59,6 +59,15 @@ for ($i=1; $i -le $maxRetries; $i++) {
 }
 
 # ------------------------------------------------------------
+# MAP Z: to be EFS (via samba services)
+# -----------------------------------------------------------
+
+$startup = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp"
+$batchFile = Join-Path $startup "map_drives.bat"
+$command = 'powershell -Command "New-PSDrive -Name Z -PSProvider FileSystem -Root ''\\${samba_server}\efs'' -Persist -Description ''EFS''"'
+Set-Content -Path $batchFile -Value $command -Encoding ASCII
+
+# ------------------------------------------------------------
 # Final Reboot to Apply Changes
 # ------------------------------------------------------------
 

@@ -55,11 +55,11 @@ resource "aws_instance" "windows_ad_instance" {
   # This script is dynamically templated with values required for Windows Active Directory setup:
   # - `admin_secret`: The administrator credentials secret.
   # - `domain_fqdn`: The fully qualified domain name (FQDN) for the environment.
-  # - `computers_ou`: The Organizational Unit where computers are registered in Active Directory.
 
   user_data = templatefile("./scripts/userdata.ps1", {
-    admin_secret = "admin_ad_credentials" # The administrator credentials secret.
-    domain_fqdn  = var.dns_zone           # The domain FQDN for Active Directory integration.
+    admin_secret = "admin_ad_credentials"                       # The administrator credentials secret.
+    domain_fqdn  = var.dns_zone                                 # The domain FQDN for Active Directory integration.
+    samba_server = aws_instance.efs_client_instance.private_dns # The Samba server hostname.
   })
 
   # INSTANCE TAGS
