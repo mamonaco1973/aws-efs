@@ -198,6 +198,7 @@ sudo rm /tmp/smb.conf
 # Insert NetBIOS hostname dynamically
 head /etc/hostname -c 15 > /tmp/netbios-name
 value=$(</tmp/netbios-name)
+value=$(echo "$value" | tr -d '-' | tr '[:lower:]' '[:upper:]')
 export netbios="$${value^^}"
 sudo sed -i "s/#netbios/netbios name=$netbios/g" /etc/samba/smb.conf
 
