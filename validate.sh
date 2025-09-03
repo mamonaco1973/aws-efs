@@ -21,12 +21,12 @@ AWS_DEFAULT_REGION="us-east-1"   # AWS region where instances are deployed
 # Lookup Windows AD Instance
 # --------------------------------------------------------------------------------------------------
 windows_dns=$(aws ec2 describe-instances \
-  --filters "Name=tag:Name,Values=windows-ad-instance" \
+  --filters "Name=tag:Name,Values=windows-ad-admin" \
   --query 'Reservations[].Instances[].PublicDnsName' \
   --output text)
 
 if [ -z "$windows_dns" ]; then
-  echo "WARN: No Windows AD instance found with tag Name=windows-ad-instance"
+  echo "WARN: No Windows AD instance found with tag Name=windows-ad-admin"
 else
   echo "NOTE: Windows Instance DNS: $(echo $windows_dns | xargs)"
 fi
