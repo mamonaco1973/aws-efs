@@ -64,7 +64,7 @@ for ($i=1; $i -le $maxRetries; $i++) {
 
 $startup = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp"
 $batchFile = Join-Path $startup "map_drives.bat"
-$command = 'powershell -Command "New-PSDrive -Name Z -PSProvider FileSystem -Root ''\\${samba_server}\efs'' -Persist -Description ''EFS''"'
+$command = "net use Z: \\${samba_server}\efs /persistent:yes"
 Set-Content -Path $batchFile -Value $command -Encoding ASCII
 
 # ------------------------------------------------------------
