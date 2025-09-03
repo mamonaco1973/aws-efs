@@ -1,72 +1,81 @@
-# EC2 INSTANCE CONFIGURATION
-# This resource block defines an AWS EC2 instance named "windows_ad_instance".
-
+# ================================================================================================
+# EC2 Instance: Windows AD Administration Server
+# ================================================================================================
+# Provisions a Windows Server EC2 instance that serves as an administrative workstation
+# for managing the Active Directory (AD) environment.
+#
+# Key Points:
+#   - This is NOT a Domain Controller. It is a management box used for RDP logins,
+#     running administrative tools (e.g., RSAT, ADUC, PowerShell modules), and
+#     interacting with the AD domain.
+#   - Designed to connect to and manage AD services running on separate infrastructure.
+# ================================================================================================
 resource "aws_instance" "windows_ad_instance" {
 
-  # AMAZON MACHINE IMAGE (AMI)
-  # Reference the Windows AMI ID fetched dynamically via the data source.
-  # This ensures the latest or specific Windows Server version is used.
-
+  # ----------------------------------------------------------------------------------------------
+  # Amazon Machine Image (AMI)
+  # ----------------------------------------------------------------------------------------------
+  # References a Windows Server AMI ID, dynamically resolved from a data source.
+  # Ensures the latest supported Windows AMI is used for administration purposes.
   ami = data.aws_ami.windows_ami.id
 
-  # INSTANCE TYPE
-  # Defines the compute power of the EC2 instance.
-  # "t2.medium" is selected to provide more RAM and CPU power, 
-  # since Windows requires more resources than Linux.
-
+  # ----------------------------------------------------------------------------------------------
+  # Instance Type
+  # ----------------------------------------------------------------------------------------------
+  # Specifies the compute and memory profile of the instance.
+  # "t3.medium" provides 2 vCPUs and 4 GiB of RAM — sufficient for running AD admin tools,
+  # remote management consoles, and supporting RDP sessions.
   instance_type = "t3.medium"
 
-  # NETWORK CONFIGURATION - SUBNET
-  # Specifies the AWS subnet where the instance will be deployed.
-  # The subnet is dynamically retrieved from a data source (ad_subnet_2).
-  # This determines whether the instance is public or private.
-
+  # ----------------------------------------------------------------------------------------------
+  # Networking
+  # ----------------------------------------------------------------------------------------------
+  # - Launches the instance into the specified VPC subnet.
+  # - Networking rules are enforced through security groups.
   subnet_id = data.aws_subnet.vm_subnet_1.id
 
-  # SECURITY GROUPS
-  # Applies two security groups:
-  # 1. `ad_rdp_sg` - Allows Remote Desktop Protocol (RDP) access for Windows management.
-  # 2. `ad_ssm_sg` - Allows AWS Systems Manager access for remote management.
-
   vpc_security_group_ids = [
-    aws_security_group.ad_rdp_sg.id
+    aws_security_group.ad_rdp_sg.id  # Allows inbound RDP (TCP/3389) for Windows administration
+    # Extend with SSM security group if AWS Systems Manager is used for management
   ]
 
-  # PUBLIC IP ASSIGNMENT
-  # Ensures the instance gets a public IP upon launch for external access.
-  # WARNING: This makes the instance reachable from the internet if security groups are misconfigured.
-
+  # Assign a public IP at launch.
+  # WARNING: With permissive SG rules, this exposes the instance to the internet.
+  # Recommended to restrict RDP to trusted IPs (e.g., VPN or admin workstation ranges).
   associate_public_ip_address = true
 
-  # SSH KEY PAIR (FOR ADMIN ACCESS)
-  # Assigns an SSH key pair for secure access.
-  # Even though this is a Windows instance, the key may be used for encrypted RDP authentication.
-
-  # key_name = aws_key_pair.ec2_key_pair.key_name
-
-  # IAM INSTANCE PROFILE
-  # Assigns an IAM role with the necessary permissions for accessing AWS resources securely.
-  # This is often used for granting access to S3, Secrets Manager, or other AWS services.
-
+  # ----------------------------------------------------------------------------------------------
+  # IAM Role / Instance Profile
+  # ----------------------------------------------------------------------------------------------
+  # Attaches an IAM instance profile granting the instance permission to access AWS resources
+  # securely (e.g., retrieving secrets from Secrets Manager, accessing SSM).
   iam_instance_profile = aws_iam_instance_profile.ec2_secrets_profile.name
 
-  # USER DATA SCRIPT
-  # Executes a PowerShell startup script (`userdata.ps1`) when the instance boots up.
-  # This script is dynamically templated with values required for Windows Active Directory setup:
-  # - `admin_secret`: The administrator credentials secret.
-  # - `domain_fqdn`: The fully qualified domain name (FQDN) for the environment.
-
+  # ----------------------------------------------------------------------------------------------
+  # User Data (Bootstrapping)
+  # ----------------------------------------------------------------------------------------------
+  # Executes a PowerShell script at first boot to configure the instance with:
+  # - admin_secret   : AWS Secrets Manager entry for admin credentials
+  # - domain_fqdn    : Fully Qualified Domain Name of the AD environment
+  # - samba_server   : Private DNS name of the Samba/EFS client instance (for integration)
   user_data = templatefile("./scripts/userdata.ps1", {
-    admin_secret = "admin_ad_credentials"                       # The administrator credentials secret.
-    domain_fqdn  = var.dns_zone                                 # The domain FQDN for Active Directory integration.
-    samba_server = aws_instance.efs_client_instance.private_dns # The Samba server hostname.
+    admin_secret = "admin_ad_credentials"
+    domain_fqdn  = var.dns_zone
+    samba_server = aws_instance.efs_client_instance.private_dns
   })
 
-  # INSTANCE TAGS
-  # Metadata tag used to identify and organize resources in AWS.
+  # ----------------------------------------------------------------------------------------------
+  # Tags
+  # ----------------------------------------------------------------------------------------------
+  # Standard AWS metadata tags for identification, cost allocation, and automation workflows.
   tags = {
-    Name = "windows-ad-instance" # The EC2 instance name in AWS.
+    Name = "windows-ad-admin" # Clarified role: AD Admin workstation/server
   }
 
+  # ----------------------------------------------------------------------------------------------
+  # Dependencies
+  # ----------------------------------------------------------------------------------------------
+  # Ensure that the Samba/EFS client instance is created first,
+  # since this admin box may connect to it for management tasks.
   depends_on = [aws_instance.efs_client_instance]
 }

@@ -1,20 +1,27 @@
-# ==================================================================================================
-# Fetch the Canonical-published Ubuntu 24.04 AMI ID from AWS Systems Manager Parameter Store
-# This path is maintained by Canonical; it always points at the current stable AMI for 24.04 (amd64, HVM, gp3)
-# ==================================================================================================
+# ================================================================================================
+# Canonical Ubuntu 24.04 AMI Lookup
+# ================================================================================================
+# Fetch the Canonical-published Ubuntu 24.04 LTS AMI ID from AWS Systems Manager (SSM).
+# - Canonical maintains this parameter and keeps it updated to the current stable release.
+# - This ensures that new deployments always use the latest recommended image for Ubuntu 24.04.
+# - Architecture: amd64
+# - Virtualization: HVM
+# - Storage type: gp3
+# ================================================================================================
 data "aws_ssm_parameter" "ubuntu_24_04" {
   name = "/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id"
 }
 
-# ==================================================================================================
-# Resolve the full AMI object using the ID returned by SSM
-# - Restrict owner to Canonical to avoid spoofed AMIs
-# - Filter by the exact image-id pulled above
-# - most_recent is kept true as a guard when multiple matches exist in a region
-# ==================================================================================================
+# ================================================================================================
+# Resolve Full AMI Object
+# ================================================================================================
+# Retrieves the full Amazon Machine Image (AMI) object corresponding to the ID fetched above.
+# - Restricts the AMI owner to Canonical (099720109477) to avoid spoofed or untrusted AMIs.
+# - Uses "most_recent = true" as an additional safeguard in case of multiple matches.
+# ================================================================================================
 data "aws_ami" "ubuntu_ami" {
   most_recent = true
-  owners      = ["099720109477"] # Canonical
+  owners      = ["099720109477"] # Canonical’s official AWS account ID
 
   filter {
     name   = "image-id"
@@ -22,76 +29,79 @@ data "aws_ami" "ubuntu_ami" {
   }
 }
 
-# EC2 INSTANCE CONFIGURATION
-# This resource block defines an AWS EC2 instance named "efs_client_instance".
-
+# ================================================================================================
+# EC2 Instance: EFS Client
+# ================================================================================================
+# Provisions an Ubuntu 24.04 EC2 instance that mounts an Amazon EFS file system and
+# integrates into an Active Directory (AD) environment.
+# ================================================================================================
 resource "aws_instance" "efs_client_instance" {
 
-  # AMAZON MACHINE IMAGE (AMI)
-  # Reference the Ubuntu AMI ID fetched dynamically via the data source.
-
+  # ----------------------------------------------------------------------------------------------
+  # Amazon Machine Image (AMI)
+  # ----------------------------------------------------------------------------------------------
+  # Dynamically resolved to the latest Canonical-published Ubuntu 24.04 AMI.
   ami = data.aws_ami.ubuntu_ami.id
 
-  # INSTANCE TYPE
-  # Defines the compute power of the EC2 instance. 
-  # "t2.micro" is selected as a cost-effective option with minimal resources.
-
+  # ----------------------------------------------------------------------------------------------
+  # Instance Type
+  # ----------------------------------------------------------------------------------------------
+  # Defines the compute and memory capacity of the instance.
+  # Selected as "t3.medium" for balance between cost and performance.
   instance_type = "t3.medium"
 
-  # NETWORK CONFIGURATION - SUBNET
-  # Specifies the AWS subnet where the instance will be deployed.
-  # The subnet is dynamically retrieved from a data source (ad_subnet_1).
-
+  # ----------------------------------------------------------------------------------------------
+  # Networking
+  # ----------------------------------------------------------------------------------------------
+  # - Places the instance into a designated VPC subnet.
+  # - Applies one or more security groups to control inbound/outbound traffic.
   subnet_id = data.aws_subnet.vm_subnet_1.id
 
-  # SECURITY GROUPS
-  # Applies two security groups:
-  # 1. `ad_ssh_sg` - Allows SSH access.
-  # 2. `ad_ssm_sg` - Allows AWS Systems Manager access for remote management.
-
   vpc_security_group_ids = [
-    aws_security_group.ad_ssh_sg.id
+    aws_security_group.ad_ssh_sg.id  # Allows SSH access; extend with SSM SG if required
   ]
 
-  # PUBLIC IP ASSIGNMENT
-  # Ensures the instance gets a public IP upon launch for external access.
-
+  # Assigns a public IP to the instance at launch (enables external SSH/RDP if allowed by SGs).
   associate_public_ip_address = true
 
-  # SSH KEY PAIR
-  # Assigns an SSH key pair for secure access.
-  # The key pair is expected to be created elsewhere in the Terraform configuration.
-
-  # key_name = aws_key_pair.ec2_key_pair.key_name
-
-  # IAM INSTANCE PROFILE
-  # Assigns an IAM role with the necessary permissions for accessing AWS resources securely.
-  # This is often used for granting access to S3, Secrets Manager, or other AWS services.
-
+  # ----------------------------------------------------------------------------------------------
+  # IAM Role / Instance Profile
+  # ----------------------------------------------------------------------------------------------
+  # Attaches an IAM instance profile that grants the EC2 instance permissions to interact
+  # with AWS services (e.g., Secrets Manager for credential retrieval, SSM for management).
   iam_instance_profile = aws_iam_instance_profile.ec2_secrets_profile.name
 
-  # USER DATA SCRIPT
-  # Executes a startup script (`userdata.sh`) when the instance boots up.
-  # This script is dynamically templated with values required for setup:
-  # - `admin_secret`: The administrator credentials secret
-  # - `domain_fqdn`: The fully qualified domain name (FQDN) for the environment.
-  # - `efs_mnt_server`: The DNS name of the EFS mount target.
-
+  # ----------------------------------------------------------------------------------------------
+  # User Data (Bootstrapping)
+  # ----------------------------------------------------------------------------------------------
+  # Executes a startup script on first boot.
+  # The script is parameterized with environment-specific values:
+  # - admin_secret   : Name of the AWS Secrets Manager secret with AD admin credentials
+  # - domain_fqdn    : Fully Qualified Domain Name of the AD domain
+  # - efs_mnt_server : DNS name of the EFS mount target
+  # - netbios        : NetBIOS short name of the AD domain
+  # - realm          : Kerberos realm (usually uppercase domain name)
+  # - force_group    : Default group applied to created files/directories
   user_data = templatefile("./scripts/userdata.sh", {
-    admin_secret   = "admin_ad_credentials"                  # The administrator credentials secret
-    domain_fqdn    = var.dns_zone                            # The domain FQDN for Active Directory integration.
-    efs_mnt_server = aws_efs_mount_target.efs_mnt_1.dns_name # EFS mount target DNS name
+    admin_secret   = "admin_ad_credentials"
+    domain_fqdn    = var.dns_zone
+    efs_mnt_server = aws_efs_mount_target.efs_mnt_1.dns_name
     netbios        = var.netbios
     realm          = var.realm
     force_group    = "mcloud-users"
   })
 
-  # INSTANCE TAGS
-  # Metadata tag used to identify and organize resources in AWS.
-
+  # ----------------------------------------------------------------------------------------------
+  # Tags
+  # ----------------------------------------------------------------------------------------------
+  # Standard AWS tagging for identification, cost tracking, and automation workflows.
   tags = {
-    Name = "efs-client-instance" # The EC2 instance name in AWS.
+    Name = "efs-client-instance"
   }
 
+  # ----------------------------------------------------------------------------------------------
+  # Dependencies
+  # ----------------------------------------------------------------------------------------------
+  # Ensures the Amazon EFS file system exists before the client instance is launched.
   depends_on = [aws_efs_file_system.efs]
 }
