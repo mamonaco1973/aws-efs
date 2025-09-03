@@ -1,31 +1,46 @@
-# AWS Mini Active Directory
+# AWS Mini Active Directory with EFS: NFS & Samba File Sharing
 
-This project is a follow-up to our full [AWS Managed Microsoft Active Directory deployment video](https://youtu.be/qUc5XQYTRSI). While Managed Microsoft AD is well-suited for production, it can be expensive for prototyping and often requires a significant amount of time to provision. The “mini-ad” approach provides a faster, lower-cost alternative that delivers a fully functional Active Directory environment in minutes.
+This project extends the original **AWS Mini Active Directory** lab by adding **Amazon Elastic File System (EFS)** as a shared storage backend. Instead of relying only on local disks or standalone file servers, this solution shows how to expose EFS storage in two ways:  
 
-Using Terraform, Samba 4, and automated configuration scripts, this deployment provisions an Ubuntu-based EC2 instance acting as both a Domain Controller and DNS server. It is integrated into a custom VPC with secure networking, IAM roles, and AWS Secrets Manager for credential management. Windows and Linux EC2 instances are also deployed and automatically join the domain at boot, enabling seamless AD authentication across platforms.
+1. **Direct NFS Mounts on Linux Clients** – Linux machines joined to the mini-AD domain mount EFS directly for scalable, POSIX-compliant storage.  
+2. **Samba File Server on Linux** – A Linux client mounts EFS locally and then exposes it via Samba, allowing Windows machines to access the same storage through familiar SMB shares.  
 
-This solution is ideal for labs, demos, and development environments where Active Directory integration is needed without the cost and provisioning time of AWS Managed Microsoft AD. It is **not intended for production use**, but provides a complete, repeatable environment for testing AD-connected workloads in AWS. See the `Limitations` sections for a list of caveats.
+The mini-AD environment (Samba 4 on Ubuntu) provides Active Directory authentication and DNS services. EFS provides scalable, managed NFS storage. Together, they enable a hybrid setup where both Linux and Windows domain-joined clients can consume cloud-native storage seamlessly.  
 
 
-![AWS diagram](aws-mini-directory.png)
+![AWS diagram](aws-efs.png)
 
-## Limitations
+## Understanding Amazon Elastic File System (EFS)
 
-While the mini-AD deployment provides a functional and cost-effective Active Directory environment for labs, demos, and development, it does not include many of the advanced features found in AWS Managed Microsoft AD. Below is a list of key capabilities that are missing or require significant manual setup when using mini-AD compared to the managed service:
+**Amazon Elastic File System (EFS)** is a fully managed, elastic, NFS-based file system designed to be shared across multiple Amazon EC2 instances and other AWS services. It provides a simple way to deliver shared storage that automatically grows and shrinks as files are added or removed, eliminating the need for capacity planning.
 
-### Issues Related to PaaS vs IaaS (Operational & Platform-Level)
-- **High Availability & Multi-AZ Deployment** – Managed AD provisions redundant DCs automatically; mini-AD is typically a single EC2 instance.  
-- **Automated Backups & Snapshots** – Managed AD handles daily backups and point-in-time recovery; mini-AD requires manual backup configuration.  
-- **Automatic Patching** – Managed AD auto-patches OS and AD services; mini-AD requires manual updates.  .  
-- **Security Hardening & Compliance** – Managed AD is pre-hardened for AWS compliance; mini-AD security depends entirely on your setup.  
-- **24/7 AWS Support for Directory Service** – Managed AD includes AWS support; mini-AD requires you to support everything yourself.  
-- **Monitoring & Metrics** – Managed AD integrates CloudWatch metrics/logging; mini-AD needs manual monitoring configuration.  
+### When to Use EFS
+EFS is a good fit for:
+- **Shared File Storage** – When multiple Linux or Windows servers need to access the same dataset simultaneously.  
+- **Lift-and-Shift Applications** – Legacy applications that expect a POSIX-compliant filesystem but need cloud scalability.  
+- **Content Management & Web Serving** – Centralized storage for web content, media files, or shared project data.  
+- **Big Data & Analytics** – Shared datasets for parallel processing across many compute nodes.  
+- **Home Directories** – User home directories in multi-user environments, accessible from any server.  
 
-### True Functional Differences (AD Feature Gaps & Compatibility)
-- **AWS Service Integration** – Managed AD has built-in integration with WorkSpaces, FSx, RDS SQL Server, QuickSight, etc.; mini-AD may lack or require extra setup.  
-- **Group Policy Objects (GPO) Support** – Managed AD provides full, replicated GPO support; Samba GPO support is limited and lacks automatic replication.  
-- **PowerShell Active Directory Cmdlet Support** – Managed AD supports full AD PowerShell cmdlets; Samba-based mini-AD lacks native AD Web Services, so cmdlets often don’t work.  
-- **Kerberos Trusts with On-Prem AD** – Managed AD supports forest/domain trusts; mini-AD requires complex manual configuration.  
+### Key Benefits
+- **Elastic & Pay-As-You-Go** – Storage scales automatically with usage.  
+- **Multi-AZ Availability** – Data is redundantly stored across multiple Availability Zones.  
+- **Managed Service** – No patching, backups, or infrastructure management required.  
+- **High Throughput & IOPS** – Supports workloads that require parallel access to files.  
+
+### Limitations of EFS
+
+While powerful, EFS has some caveats:
+
+- **Linux-Centric** – Native support is for NFS (Linux/Unix). Windows clients require Samba or an intermediate file server (as demonstrated in this project).  
+- **Latency** – Network-based storage can introduce higher latency compared to local instance storage or EBS volumes.  
+- **Throughput Modes** – Performance depends on selected mode (bursting, provisioned, or elastic), and heavy workloads may require tuning.  
+- **Per-Instance Connection Scaling** – Each EC2 instance maintains a limited number of EFS client connections. Performance can degrade if too many processes or threads on a single node try to access EFS concurrently. Scaling out across multiple instances often delivers better results than scaling up one node.  
+- **Cost** – Pay-per-GB pricing is higher than S3 or EBS in many cases; frequent access across AZs can add data transfer charges.  
+- **No Built-in File-Level Features** – Missing features like Windows ACLs, quotas, or DFS namespaces (available in FSx for Windows File Server or FSx for NetApp ONTAP).  
+.  
+
+📌 **Tip:** Use **EFS** when you need scalable, shared storage that behaves like a standard filesystem. For Windows-native environments with advanced SMB features, consider **FSx for Windows File Server**. For enterprise NAS capabilities such as snapshots, cloning, and multiprotocol support, consider **FSx for NetApp ONTAP**.
 
 ## Prerequisites
 
@@ -40,8 +55,8 @@ If this is your first time watching our content, we recommend starting with this
 ## Download this Repository
 
 ```bash
-git clone https://github.com/mamonaco1973/aws-mini-ad.git
-cd aws-mini-ad
+git clone https://github.com/mamonaco1973/aws-efs.git
+cd aws-efs
 ```
 
 ---
@@ -51,7 +66,7 @@ cd aws-mini-ad
 Run [check_env](check_env.sh) to validate your environment, then run [apply](apply.sh) to provision the infrastructure.
 
 ```bash
-develop-vm:~/aws-mini-ad$ ./apply.sh
+develop-vm:~/aws-efs$ ./apply.sh
 NOTE: Validating that required commands are found in your PATH.
 NOTE: aws is found in the current PATH.
 NOTE: terraform is found in the current PATH.
@@ -84,17 +99,30 @@ When the deployment completes, the following resources are created:
   - Route tables configured for both public and private subnets  
 
 - **Security & IAM:**  
-  - Security groups for domain controller, Linux client, and Windows client  
-  - IAM roles and policies allowing EC2 instances to use AWS Systems Manager and retrieve credentials from AWS Secrets Manager  
+  - Security groups for the domain controller, Linux client, Windows client, and EFS mount targets  
+  - IAM roles and policies allowing EC2 instances to use AWS Systems Manager and mount EFS  
+  - Secrets stored in AWS Secrets Manager for AD administrator and test user credentials  
 
 - **Active Directory Server:**  
   - Ubuntu EC2 instance running Samba 4 as a Domain Controller and DNS server  
   - Configured Kerberos realm and NetBIOS name  
-  - Administrator credentials stored in AWS Secrets Manager  
+  - Administrator credentials managed in AWS Secrets Manager  
 
-- **Client Instances:**  
-  - Windows Server EC2 instance joined to the domain  
-  - Linux EC2 instance joined to the domain with SSSD integration  
+- **Amazon EFS:**  
+  - Elastic File System provisioned with mount targets in each private subnet  
+  - Security group allowing NFS traffic (TCP/2049) from Linux and Windows servers  
+  - Configured for multi-AZ availability and automatic scaling  
+
+- **Linux Client Instance:**  
+  - Domain-joined Ubuntu EC2 instance with SSSD integration  
+  - Mounts EFS directly via NFS for testing POSIX file access  
+  - Configured to expose the EFS mount as a **Samba share**, enabling Windows clients to access it  
+
+- **Windows Client Instance:**  
+  - Domain-joined Windows Server EC2 instance  
+  - Can access EFS storage via the Samba share hosted on the Linux client  
+  - Supports domain-authenticated users for SMB access  
+
 
 ---
 
@@ -155,6 +183,7 @@ When the Linux instance boots, the [userdata script](02-servers/scripts/userdata
 - Enable password authentication for AD users  
 - Configure SSSD for AD integration  
 - Grant sudo privileges to the `linux-admins` group  
+- Sets up Samba and shares `/efs` for Windows access to EFS
 
 Linux user credentials are stored as secrets.
 
