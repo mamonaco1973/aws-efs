@@ -252,6 +252,11 @@ chmod 770 /efs
 chmod 770 /efs/data
 chmod 700 /home/*
 
+cd /efs
+git clone https://github.com/mamonaco1973/aws-efs.git
+chmod -R 775 aws-efs
+chgrp -R mcloud-users aws-efs
+
 # =================================================================================
 # End of Script
 # =================================================================================
