@@ -40,7 +40,7 @@ While powerful, EFS has some caveats:
 - **No Built-in File-Level Features** – Missing features like Windows ACLs, quotas, or DFS namespaces (available in FSx for Windows File Server or FSx for NetApp ONTAP).  
 .  
 
-📌 **Tip:** Use **EFS** when you need scalable, shared storage that behaves like a standard filesystem. For Windows-native environments with advanced SMB features, consider **FSx for Windows File Server**. For enterprise NAS capabilities such as snapshots, cloning, and multiprotocol support, consider **FSx for NetApp ONTAP**.
+**Tip:** Use **EFS** when you need scalable, shared storage that behaves like a standard filesystem. For Windows-native environments with advanced SMB features, consider **FSx for Windows File Server**. For enterprise NAS capabilities such as snapshots, cloning, and multiprotocol support, consider **FSx for NetApp ONTAP**.
 
 ## AWS Storage Cost Comparison (1 TB / month, us-east-1)
 
