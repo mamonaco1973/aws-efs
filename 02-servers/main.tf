@@ -19,13 +19,12 @@ data "aws_subnet" "vm_subnet_1" {
   }
 }
 
-# data "aws_subnet" "vm_subnet_2" {
-#   filter {
-#     name   = "tag:Name"      # Match based on the 'Name' tag
-#     values = ["vm-subnet-2"] # Look for a subnet tagged as "vm-subnet-2"
-#   }
-# }
-
+data "aws_subnet" "ad_subnet" {
+  filter {
+    name   = "tag:Name"      # Match based on the 'Name' tag
+    values = ["ad-subnet"] # Look for a subnet tagged as "ad-subnet"
+  }
+}
 
 # Retrieve details of the AWS VPC where Active Directory components will be deployed
 # Uses a tag-based filter to locate the correct VPC
