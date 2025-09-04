@@ -39,14 +39,14 @@ resource "aws_subnet" "vm-subnet-1" {
   tags = { Name = "vm-subnet-1" }
 }
 
-resource "aws_subnet" "vm-subnet-2" {
-  vpc_id                  = aws_vpc.ad-vpc.id
-  cidr_block              = "10.0.0.128/26" # ~62 usable IPs, next available range
-  map_public_ip_on_launch = true            # Auto-assign public IPv4
-  availability_zone_id    = "use1-az4"
+# resource "aws_subnet" "vm-subnet-2" {
+#   vpc_id                  = aws_vpc.ad-vpc.id
+#   cidr_block              = "10.0.0.128/26" # ~62 usable IPs, next available range
+#   map_public_ip_on_launch = true            # Auto-assign public IPv4
+#   availability_zone_id    = "use1-az4"
 
-  tags = { Name = "vm-subnet-2" }
-}
+#   tags = { Name = "vm-subnet-2" }
+# }
 
 
 resource "aws_subnet" "ad-subnet" {
@@ -110,10 +110,10 @@ resource "aws_route_table_association" "rt_assoc_vm_public" {
   route_table_id = aws_route_table.public.id
 }
 
-resource "aws_route_table_association" "rt_assoc_vm_public_2" {
-  subnet_id      = aws_subnet.vm-subnet-2.id
-  route_table_id = aws_route_table.public.id
-}
+# resource "aws_route_table_association" "rt_assoc_vm_public_2" {
+#   subnet_id      = aws_subnet.vm-subnet-2.id
+#   route_table_id = aws_route_table.public.id
+# }
 
 resource "aws_route_table_association" "rt_assoc_ad_private" {
   subnet_id      = aws_subnet.ad-subnet.id

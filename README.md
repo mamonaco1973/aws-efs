@@ -42,6 +42,16 @@ While powerful, EFS has some caveats:
 
 📌 **Tip:** Use **EFS** when you need scalable, shared storage that behaves like a standard filesystem. For Windows-native environments with advanced SMB features, consider **FSx for Windows File Server**. For enterprise NAS capabilities such as snapshots, cloning, and multiprotocol support, consider **FSx for NetApp ONTAP**.
 
+## AWS Storage Cost Comparison (1 TB / month, us-east-1)
+
+| Service        | Cost per GB-month | 1 TB Cost (approx) | Notes |
+|----------------|------------------:|-------------------:|-------|
+| **S3 Standard** | $0.023            | **$23.50**         | Cheapest, object storage, request + transfer fees apply |
+| **EBS gp3**     | $0.080            | **$81.92**         | Block storage, single-instance use (can be Multi-Attach with limits) |
+| **EFS Standard**| $0.300            | **$307.20**        | Shared NFS file system, elastic scaling across AZs |
+| **EFS IA**      | $0.025            | **$25.60**         | Cheaper tier, but retrieval charges apply |
+
+
 ## Prerequisites
 
 * [An AWS Account](https://aws.amazon.com/console/)
