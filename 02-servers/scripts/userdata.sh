@@ -172,11 +172,15 @@ idmap config * : range = 1-9999
 
 # Winbind options
 min domain uid = 0
-winbind use default domain = no
+winbind use default domain = yes
+winbind normalize names = yes
 winbind refresh tickets = yes
 winbind offline logon = yes
-winbind enum groups = no
-winbind enum users = no
+winbind enum groups = yes
+winbind enum users = yes
+winbind cache time = 30
+idmap cache time = 60
+winbind negative cache time = 0
 
 [homes]
 comment = Home Directories
@@ -240,6 +244,10 @@ echo "%linux-admins ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/10-linux-a
 sudo sed -i 's/^\(\s*HOME_MODE\s*\)[0-9]\+/\10700/' /etc/login.defs
 
 # Trigger home directory creation for specific test accounts
+
+wbinfo -u >> /tmp/join.log 2>&1
+wbinfo -g >> /tmp/join.log 2>&1
+
 su -c "exit" rpatel
 su -c "exit" jsmith
 su -c "exit" akumar
@@ -256,6 +264,7 @@ cd /efs
 git clone https://github.com/mamonaco1973/aws-efs.git
 chmod -R 775 aws-efs
 chgrp -R mcloud-users aws-efs
+
 
 # =================================================================================
 # End of Script
