@@ -103,5 +103,5 @@ resource "aws_instance" "efs_client_instance" {
   # Dependencies
   # ----------------------------------------------------------------------------------------------
   # Ensures the Amazon EFS file system exists before the client instance is launched.
-  depends_on = [aws_efs_file_system.efs]
+  depends_on = [aws_efs_file_system.efs, aws_efs_mount_target.efs_mnt_1, aws_efs_mount_target.efs_mnt_2]
 }
