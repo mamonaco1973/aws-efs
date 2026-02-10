@@ -14,34 +14,34 @@
 #   - Module assumes outbound internet access for package installation
 #   - User passwords are generated dynamically and injected at bootstrap
 # ================================================================================
- 
+
 # ================================================================================
 # MODULE: Mini Active Directory (mini-ad)
 # ================================================================================
- 
+
 module "mini_ad" {
   source = "github.com/mamonaco1973/module-aws-mini-ad"
- 
+
   # ------------------------------------------------------------------------------
   # Domain Identity
   # ------------------------------------------------------------------------------
   netbios = var.netbios
   realm   = var.realm
- 
+
   # ------------------------------------------------------------------------------
   # Networking
   # ------------------------------------------------------------------------------
   vpc_id    = aws_vpc.ad-vpc.id
   subnet_id = aws_subnet.ad-subnet.id
   dns_zone  = var.dns_zone
- 
+
   # ------------------------------------------------------------------------------
   # Authentication and User Provisioning
   # ------------------------------------------------------------------------------
   ad_admin_password = random_password.admin_password.result
   user_base_dn      = var.user_base_dn
   users_json        = local.users_json
- 
+
   # ------------------------------------------------------------------------------
   # Dependency Ordering
   # ------------------------------------------------------------------------------
@@ -53,11 +53,11 @@ module "mini_ad" {
     aws_route_table_association.rt_assoc_ad_private
   ]
 }
- 
+
 # ================================================================================
 # LOCALS: users_json
 # ================================================================================
- 
+
 # ------------------------------------------------------------------------------
 # Purpose:
 #   - Renders users.json from a template file
@@ -67,14 +67,14 @@ module "mini_ad" {
 #   - Output is passed directly into instance bootstrap logic
 #   - Users are created automatically during first boot
 # ------------------------------------------------------------------------------
- 
+
 locals {
   users_json = templatefile("./scripts/users.json.template", {
-    USER_BASE_DN    = var.user_base_dn
-    DNS_ZONE        = var.dns_zone
-    REALM           = var.realm
-    NETBIOS         = var.netbios
- 
+    USER_BASE_DN = var.user_base_dn
+    DNS_ZONE     = var.dns_zone
+    REALM        = var.realm
+    NETBIOS      = var.netbios
+
     jsmith_password = random_password.jsmith_password.result
     edavis_password = random_password.edavis_password.result
     rpatel_password = random_password.rpatel_password.result

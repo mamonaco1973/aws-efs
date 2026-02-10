@@ -1,135 +1,176 @@
-# Generate a random password for the Active Directory (AD) Administrator
+# ==============================================================================
+# File: accounts.tf
+# ------------------------------------------------------------------------------
+# Purpose:
+#   - Generates Active Directory (AD) user credentials for lab and quick-start
+#     environments.
+#   - Stores all credentials securely in AWS Secrets Manager.
+#
+# Scope:
+#   - Creates a single AD Administrator account secret.
+#   - Creates multiple standard AD user account secrets.
+#   - Generates strong random passwords per account.
+#
+# Notes:
+#   - Passwords are generated at apply time and never logged.
+#   - Secrets are versioned automatically by AWS Secrets Manager.
+#   - Usernames are constructed using the NetBIOS domain prefix.
+#   - This file is intentionally explicit (non-dynamic) for clarity in
+#     instructional and demo environments.
+# ==============================================================================
+
+
+# ==============================================================================
+# AD ADMINISTRATOR ACCOUNT
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Generate a random password for the AD Administrator account
+# ------------------------------------------------------------------------------
 resource "random_password" "admin_password" {
-  length           = 24    # Set password length to 24 characters
-  special          = true  # Include special characters in the password
-  override_special = "_-." # Limit special characters to this set
+  length           = 24   # Total password length
+  special          = true # Include special characters
+  override_special = "_-" # Restrict special characters to safe set
 }
 
-# Create an AWS Secrets Manager secret to store AD Admin credentials
+# ------------------------------------------------------------------------------
+# Secrets Manager secret for AD Administrator credentials
+# ------------------------------------------------------------------------------
 resource "aws_secretsmanager_secret" "admin_secret" {
-  name        = "admin_ad_credentials_efs" # Name of the secret
-  description = "AD Admin Credentials (EFS)" # Description for reference
+  name        = "admin_ad_credentials_efs"
+  description = "AD Administrator Credentials (EFS)"
 
   lifecycle {
-    prevent_destroy = false # Allow secret deletion if necessary
+    prevent_destroy = false
   }
 }
 
-# Store the admin credentials in AWS Secrets Manager with a versioned secret
+# ------------------------------------------------------------------------------
+# Store AD Administrator credentials as a versioned secret
+# ------------------------------------------------------------------------------
 resource "aws_secretsmanager_secret_version" "admin_secret_version" {
-  secret_id = aws_secretsmanager_secret.admin_secret.id # Reference the secret
+  secret_id = aws_secretsmanager_secret.admin_secret.id
+
   secret_string = jsonencode({
-    username = "${var.netbios}\\Admin"               # AD username
-    password = random_password.admin_password.result # Generated password
+    username = "${var.netbios}\\Admin"
+    password = random_password.admin_password.result
   })
 }
 
-# --- User: John Smith ---
 
-# Generate a random password for John Smith
+# ==============================================================================
+# STANDARD AD USER ACCOUNTS
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# User: John Smith (jsmith)
+# ------------------------------------------------------------------------------
+
 resource "random_password" "jsmith_password" {
   length           = 24
   special          = true
   override_special = "!@#$%"
 }
 
-# Create a Secrets Manager entry for John Smith's credentials
 resource "aws_secretsmanager_secret" "jsmith_secret" {
   name        = "jsmith_ad_credentials_efs"
-  description = "John Smith's AD Credentials (EFS)"
+  description = "John Smith AD Credentials (EFS)"
 
   lifecycle {
     prevent_destroy = false
   }
 }
 
-# Store John Smith's AD credentials in AWS Secrets Manager
 resource "aws_secretsmanager_secret_version" "jsmith_secret_version" {
   secret_id = aws_secretsmanager_secret.jsmith_secret.id
+
   secret_string = jsonencode({
     username = "${var.netbios}\\jsmith"
     password = random_password.jsmith_password.result
   })
 }
 
-# --- User: Emily Davis ---
 
-# Generate a random password for Emily Davis
+# ------------------------------------------------------------------------------
+# User: Emily Davis (edavis)
+# ------------------------------------------------------------------------------
+
 resource "random_password" "edavis_password" {
   length           = 24
   special          = true
   override_special = "!@#$%"
 }
 
-# Create a Secrets Manager entry for Emily Davis's credentials
 resource "aws_secretsmanager_secret" "edavis_secret" {
   name        = "edavis_ad_credentials_efs"
-  description = "Emily Davis's AD Credentials (EFS)"
+  description = "Emily Davis AD Credentials (EFS)"
 
   lifecycle {
     prevent_destroy = false
   }
 }
 
-# Store Emily Davis's AD credentials in AWS Secrets Manager
 resource "aws_secretsmanager_secret_version" "edavis_secret_version" {
   secret_id = aws_secretsmanager_secret.edavis_secret.id
+
   secret_string = jsonencode({
     username = "${var.netbios}\\edavis"
     password = random_password.edavis_password.result
   })
 }
 
-# --- User: Raj Patel ---
 
-# Generate a random password for Raj Patel
+# ------------------------------------------------------------------------------
+# User: Raj Patel (rpatel)
+# ------------------------------------------------------------------------------
+
 resource "random_password" "rpatel_password" {
   length           = 24
   special          = true
   override_special = "!@#$%"
 }
 
-# Create a Secrets Manager entry for Raj Patel's credentials
 resource "aws_secretsmanager_secret" "rpatel_secret" {
   name        = "rpatel_ad_credentials_efs"
-  description = "Raj Patel's AD Credentials (EFS)"
+  description = "Raj Patel AD Credentials (EFS)"
 
   lifecycle {
     prevent_destroy = false
   }
 }
 
-# Store Raj Patel's AD credentials in AWS Secrets Manager
 resource "aws_secretsmanager_secret_version" "rpatel_secret_version" {
   secret_id = aws_secretsmanager_secret.rpatel_secret.id
+
   secret_string = jsonencode({
     username = "${var.netbios}\\rpatel"
     password = random_password.rpatel_password.result
   })
 }
 
-# --- User: Amit Kumar ---
 
-# Generate a random password for Amit Kumar
+# ------------------------------------------------------------------------------
+# User: Amit Kumar (akumar)
+# ------------------------------------------------------------------------------
+
 resource "random_password" "akumar_password" {
   length           = 24
   special          = true
   override_special = "!@#$%"
 }
 
-# Create a Secrets Manager entry for Amit Kumar's credentials
 resource "aws_secretsmanager_secret" "akumar_secret" {
   name        = "akumar_ad_credentials_efs"
-  description = "Amit Kumar's AD Credentials (EFS)"
+  description = "Amit Kumar AD Credentials (EFS)"
 
   lifecycle {
     prevent_destroy = false
   }
 }
 
-# Store Amit Kumar's AD credentials in AWS Secrets Manager
 resource "aws_secretsmanager_secret_version" "akumar_secret_version" {
   secret_id = aws_secretsmanager_secret.akumar_secret.id
+
   secret_string = jsonencode({
     username = "${var.netbios}\\akumar"
     password = random_password.akumar_password.result

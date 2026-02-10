@@ -15,7 +15,7 @@
 #   - Current NFS ingress rules are open for lab/demo use only.
 #   - Production deployments must restrict NFS access explicitly.
 # ================================================================================
- 
+
 # ================================================================================
 # RESOURCE: aws_security_group.efs_sg
 # ================================================================================
@@ -30,7 +30,7 @@ resource "aws_security_group" "efs_sg" {
   name        = "efs-sg"
   description = "Security group allowing NFS traffic to EFS"
   vpc_id      = data.aws_vpc.ad_vpc.ida
- 
+
   # ------------------------------------------------------------------------------
   # INGRESS: NFS (TCP/2049)
   # ------------------------------------------------------------------------------
@@ -41,7 +41,7 @@ resource "aws_security_group" "efs_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
- 
+
   # ------------------------------------------------------------------------------
   # EGRESS: ALL
   # ------------------------------------------------------------------------------
@@ -52,12 +52,12 @@ resource "aws_security_group" "efs_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
- 
+
   tags = {
     Name = "efs-sg"
   }
 }
- 
+
 # ================================================================================
 # RESOURCE: aws_efs_file_system.efs
 # ================================================================================
@@ -71,12 +71,12 @@ resource "aws_security_group" "efs_sg" {
 resource "aws_efs_file_system" "efs" {
   creation_token = "mcloud-efs"
   encrypted      = true
- 
+
   tags = {
     Name = "mcloud-efs"
   }
 }
- 
+
 # ================================================================================
 # RESOURCES: aws_efs_mount_target
 # ================================================================================
@@ -87,7 +87,7 @@ resource "aws_efs_file_system" "efs" {
 #   - One mount target is required per Availability Zone.
 #   - Each AZ supports a single mount target per EFS file system.
 # ================================================================================
- 
+
 # ------------------------------------------------------------------------------
 # RESOURCE: aws_efs_mount_target.efs_mnt_1
 # ------------------------------------------------------------------------------
@@ -96,7 +96,7 @@ resource "aws_efs_mount_target" "efs_mnt_1" {
   subnet_id       = data.aws_subnet.vm_subnet_1.id
   security_groups = [aws_security_group.efs_sg.id]
 }
- 
+
 # ------------------------------------------------------------------------------
 # RESOURCE: aws_efs_mount_target.efs_mnt_2
 # ------------------------------------------------------------------------------

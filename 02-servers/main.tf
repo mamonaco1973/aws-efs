@@ -16,14 +16,14 @@
 #   - Tag-based discovery assumes the network baseline exists already.
 #   - Ensure Name tags are unique within the target account/region.
 # ================================================================================
- 
+
 # ================================================================================
 # AWS Provider Configuration
 # ================================================================================
 provider "aws" {
   region = "us-east-1"
 }
- 
+
 # ================================================================================
 # DATA: Secrets Manager - AD Admin Credentials
 # ================================================================================
@@ -33,7 +33,7 @@ provider "aws" {
 data "aws_secretsmanager_secret" "admin_secret" {
   name = "admin_ad_credentials_efs"
 }
- 
+
 # ================================================================================
 # DATA: VPC Discovery
 # ================================================================================
@@ -46,7 +46,7 @@ data "aws_vpc" "ad_vpc" {
     values = [var.vpc_name]
   }
 }
- 
+
 # ================================================================================
 # DATA: Subnet Discovery
 # ================================================================================
@@ -56,7 +56,7 @@ data "aws_vpc" "ad_vpc" {
 # Notes:
 #   - VPC scoping is enforced using the vpc-id filter.
 # ================================================================================
- 
+
 # ------------------------------------------------------------------------------
 # DATA: aws_subnet.vm_subnet_1
 # ------------------------------------------------------------------------------
@@ -65,13 +65,13 @@ data "aws_subnet" "vm_subnet_1" {
     name   = "vpc-id"
     values = [data.aws_vpc.ad_vpc.id]
   }
- 
+
   filter {
     name   = "tag:Name"
     values = ["vm-subnet-1"]
   }
 }
- 
+
 # ------------------------------------------------------------------------------
 # DATA: aws_subnet.ad_subnet
 # ------------------------------------------------------------------------------
@@ -80,13 +80,13 @@ data "aws_subnet" "ad_subnet" {
     name   = "vpc-id"
     values = [data.aws_vpc.ad_vpc.id]
   }
- 
+
   filter {
     name   = "tag:Name"
     values = ["ad-subnet"]
   }
 }
- 
+
 # ================================================================================
 # DATA: Windows Server 2022 AMI Discovery
 # ================================================================================
@@ -99,7 +99,7 @@ data "aws_subnet" "ad_subnet" {
 data "aws_ami" "windows_ami" {
   most_recent = true
   owners      = ["amazon"]
- 
+
   filter {
     name   = "name"
     values = ["Windows_Server-2022-English-Full-Base-*"]

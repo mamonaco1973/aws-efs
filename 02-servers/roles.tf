@@ -11,7 +11,7 @@
 #   - Role/profile names include an auto-generated suffix to avoid collisions
 #     when deploying multiple stacks (same pattern as the other project).
 # ================================================================================
- 
+
 # ================================================================================
 # RANDOM SUFFIX: IAM Name Uniqueness
 # ================================================================================
@@ -21,11 +21,11 @@
 resource "random_id" "iam_suffix" {
   byte_length = 3
 }
- 
+
 locals {
   iam_id = "mini-ad-${lower(var.netbios)}-${random_id.iam_suffix.hex}"
 }
- 
+
 # ================================================================================
 # RESOURCE: aws_iam_role.ec2_secrets_role
 # ================================================================================
@@ -34,7 +34,7 @@ locals {
 # ================================================================================
 resource "aws_iam_role" "ec2_secrets_role" {
   name = "ec2-secrets-role-${local.iam_id}"
- 
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -46,7 +46,7 @@ resource "aws_iam_role" "ec2_secrets_role" {
     }]
   })
 }
- 
+
 # ================================================================================
 # RESOURCE: aws_iam_policy.secrets_policy
 # ================================================================================
@@ -56,7 +56,7 @@ resource "aws_iam_role" "ec2_secrets_role" {
 resource "aws_iam_policy" "secrets_policy" {
   name        = "secrets-read-${local.iam_id}"
   description = "Allow EC2 to read required Secrets Manager secret"
- 
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -71,7 +71,7 @@ resource "aws_iam_policy" "secrets_policy" {
     }]
   })
 }
- 
+
 # ================================================================================
 # ATTACHMENT: AmazonSSMManagedInstanceCore
 # ================================================================================
@@ -82,7 +82,7 @@ resource "aws_iam_role_policy_attachment" "attach_ssm_policy" {
   role       = aws_iam_role.ec2_secrets_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
- 
+
 # ================================================================================
 # ATTACHMENT: Secrets Manager Read Policy
 # ================================================================================
@@ -93,7 +93,7 @@ resource "aws_iam_role_policy_attachment" "attach_secrets_policy" {
   role       = aws_iam_role.ec2_secrets_role.name
   policy_arn = aws_iam_policy.secrets_policy.arn
 }
- 
+
 # ================================================================================
 # RESOURCE: aws_iam_instance_profile.ec2_secrets_profile
 # ================================================================================

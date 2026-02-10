@@ -15,7 +15,7 @@
 #   - AMI resolution is dynamic and always tracks Canonical’s latest release.
 #   - Instance is intended for lab/demo and EFS validation workflows.
 # ================================================================================
- 
+
 # ================================================================================
 # DATA: Canonical Ubuntu 24.04 AMI (SSM Parameter)
 # ================================================================================
@@ -31,7 +31,7 @@
 data "aws_ssm_parameter" "ubuntu_24_04" {
   name = "/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id"
 }
- 
+
 # ================================================================================
 # DATA: Canonical Ubuntu 24.04 AMI Object
 # ================================================================================
@@ -45,13 +45,13 @@ data "aws_ssm_parameter" "ubuntu_24_04" {
 data "aws_ami" "ubuntu_ami" {
   most_recent = true
   owners      = ["099720109477"]
- 
+
   filter {
     name   = "image-id"
     values = [data.aws_ssm_parameter.ubuntu_24_04.value]
   }
 }
- 
+
 # ================================================================================
 # RESOURCE: aws_instance.efs_client_instance
 # ================================================================================
@@ -60,35 +60,35 @@ data "aws_ami" "ubuntu_ami" {
 #   - Mounts Amazon EFS and joins the Active Directory domain.
 # ================================================================================
 resource "aws_instance" "efs_client_instance" {
- 
+
   # ------------------------------------------------------------------------------
   # Amazon Machine Image
   # ------------------------------------------------------------------------------
   ami = data.aws_ami.ubuntu_ami.id
- 
+
   # ------------------------------------------------------------------------------
   # Instance Sizing
   # ------------------------------------------------------------------------------
   # Selected to balance cost and performance for EFS and AD testing.
   instance_type = "t3.medium"
- 
+
   # ------------------------------------------------------------------------------
   # Networking
   # ------------------------------------------------------------------------------
   subnet_id = data.aws_subnet.vm_subnet_1.id
- 
+
   vpc_security_group_ids = [
     aws_security_group.ad_ssh_sg.id
   ]
- 
+
   associate_public_ip_address = true
- 
+
   # ------------------------------------------------------------------------------
   # IAM Instance Profile
   # ------------------------------------------------------------------------------
   # Grants access to required AWS services such as SSM and Secrets Manager.
   iam_instance_profile = aws_iam_instance_profile.ec2_secrets_profile.name
- 
+
   # ------------------------------------------------------------------------------
   # User Data Bootstrap
   # ------------------------------------------------------------------------------
@@ -104,14 +104,14 @@ resource "aws_instance" "efs_client_instance" {
     realm          = var.realm
     force_group    = "mcloud-users"
   })
- 
+
   # ------------------------------------------------------------------------------
   # Tags
   # ------------------------------------------------------------------------------
   tags = {
     Name = "efs-client-instance"
   }
- 
+
   # ------------------------------------------------------------------------------
   # Dependency Ordering
   # ------------------------------------------------------------------------------
