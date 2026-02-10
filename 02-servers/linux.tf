@@ -97,7 +97,7 @@ resource "aws_instance" "efs_client_instance" {
   #   - Joins the AD domain.
   #   - Applies group ownership and permissions.
   user_data = templatefile("./scripts/userdata.sh", {
-    admin_secret   = "admin_ad_credentials"
+    admin_secret   = "admin_ad_credentials_efs"
     domain_fqdn    = var.dns_zone
     efs_mnt_server = aws_efs_mount_target.efs_mnt_1.dns_name
     netbios        = var.netbios
