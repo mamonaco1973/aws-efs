@@ -29,7 +29,7 @@
 resource "aws_security_group" "efs_sg" {
   name        = "efs-sg"
   description = "Security group allowing NFS traffic to EFS"
-  vpc_id      = data.aws_vpc.ad_vpc.ida
+  vpc_id      = data.aws_vpc.ad_vpc.id
 
   # ------------------------------------------------------------------------------
   # INGRESS: NFS (TCP/2049)
