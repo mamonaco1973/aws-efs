@@ -1,46 +1,71 @@
 #!/bin/bash
-# --------------------------------------------------------------------------------------------------
-# Description:
-# This script queries AWS EC2 for instances tagged with specific names and outputs their
-# associated public DNS names. It is primarily used to quickly locate endpoints for 
-# Windows and Linux AD instances deployed in AWS.
+# ==============================================================================
+# validate.sh - EFS + Active Directory Quick Start Validation
+# ------------------------------------------------------------------------------
+# Purpose:
+#   - Queries AWS for expected EC2 instances and prints quick-start endpoints.
 #
-# REQUIREMENTS:
-#   - AWS CLI installed and configured with credentials/permissions.
-#   - Instances must be tagged with:
-#       * Name = windows-ad-instance
-#       * Name = efs-client-instance
-# --------------------------------------------------------------------------------------------------
-
-# --------------------------------------------------------------------------------------------------
+# Scope:
+#   - Looks up instances by Name tag:
+#       - windows-ad-admin
+#       - efs-client-instance
+#   - Prints public DNS names for fast copy/paste access.
+#
+# Fast-Fail Behavior:
+#   - Script exits immediately on command failure, unset variables,
+#     or failed pipelines.
+#
+# Requirements:
+#   - AWS CLI installed and authenticated.
+#   - Instances must be tagged with the expected Name values.
+# ==============================================================================
+ 
+set -euo pipefail
+ 
+# ------------------------------------------------------------------------------
 # Configuration
-# --------------------------------------------------------------------------------------------------
-AWS_DEFAULT_REGION="us-east-1"   # AWS region where instances are deployed
-
-# --------------------------------------------------------------------------------------------------
-# Lookup Windows AD Instance
-# --------------------------------------------------------------------------------------------------
-windows_dns=$(aws ec2 describe-instances \
-  --filters "Name=tag:Name,Values=windows-ad-admin" \
-  --query 'Reservations[].Instances[].PublicDnsName' \
-  --output text)
-
-if [ -z "$windows_dns" ]; then
-  echo "WARN: No Windows AD instance found with tag Name=windows-ad-admin"
+# ------------------------------------------------------------------------------
+export AWS_DEFAULT_REGION="us-east-1"
+ 
+# ------------------------------------------------------------------------------
+# Helpers
+# ------------------------------------------------------------------------------
+get_public_dns_by_name_tag() {
+  local name_tag="$1"
+ 
+  aws ec2 describe-instances \
+    --filters "Name=tag:Name,Values=${name_tag}" \
+    --query "Reservations[].Instances[].PublicDnsName" \
+    --output text | xargs
+}
+ 
+# ------------------------------------------------------------------------------
+# Lookups
+# ------------------------------------------------------------------------------
+windows_dns="$(get_public_dns_by_name_tag "windows-ad-admin")"
+linux_dns="$(get_public_dns_by_name_tag "efs-client-instance")"
+ 
+# ------------------------------------------------------------------------------
+# Quick Start Output
+# ------------------------------------------------------------------------------
+echo ""
+echo "============================================================================"
+echo "EFS + Active Directory Quick Start - Validation Output"
+echo "============================================================================"
+echo ""
+ 
+if [ -n "${windows_dns}" ] && [ "${windows_dns}" != "None" ]; then
+  echo "NOTE: Windows RDP Host FQDN: ${windows_dns}"
 else
-  echo "NOTE: Windows Instance DNS: $(echo $windows_dns | xargs)"
+  echo "WARN: windows-ad-admin not found or has no public DNS"
 fi
-
-# --------------------------------------------------------------------------------------------------
-# Lookup Linux AD Instance
-# --------------------------------------------------------------------------------------------------
-linux_dns=$(aws ec2 describe-instances \
-  --filters "Name=tag:Name,Values=efs-client-instance" \
-  --query 'Reservations[].Instances[].PublicDnsName' \
-  --output text)
-
-if [ -z "$linux_dns" ]; then
-  echo "WARN: No EFS client instance found with tag Name=efs-client-instance"
+ 
+if [ -n "${linux_dns}" ] && [ "${linux_dns}" != "None" ]; then
+  echo "NOTE: Linux SSH Host FQDN:  ${linux_dns}"
 else
-  echo "NOTE: EFS Client Instance DNS:   $(echo $linux_dns | xargs)"
+  echo "WARN: efs-client-instance not found or has no public DNS"
 fi
+ 
+echo ""
+echo "NOTE: Validation complete."
+echo ""

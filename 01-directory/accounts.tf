@@ -7,8 +7,8 @@ resource "random_password" "admin_password" {
 
 # Create an AWS Secrets Manager secret to store AD Admin credentials
 resource "aws_secretsmanager_secret" "admin_secret" {
-  name        = "admin_ad_credentials" # Name of the secret
-  description = "AD Admin Credentials" # Description for reference
+  name        = "admin_ad_credentials_efs" # Name of the secret
+  description = "AD Admin Credentials (EFS)" # Description for reference
 
   lifecycle {
     prevent_destroy = false # Allow secret deletion if necessary
@@ -35,8 +35,8 @@ resource "random_password" "jsmith_password" {
 
 # Create a Secrets Manager entry for John Smith's credentials
 resource "aws_secretsmanager_secret" "jsmith_secret" {
-  name        = "jsmith_ad_credentials"
-  description = "John Smith's AD Credentials"
+  name        = "jsmith_ad_credentials_efs"
+  description = "John Smith's AD Credentials (EFS)"
 
   lifecycle {
     prevent_destroy = false
@@ -63,8 +63,8 @@ resource "random_password" "edavis_password" {
 
 # Create a Secrets Manager entry for Emily Davis's credentials
 resource "aws_secretsmanager_secret" "edavis_secret" {
-  name        = "edavis_ad_credentials"
-  description = "Emily Davis's AD Credentials"
+  name        = "edavis_ad_credentials_efs"
+  description = "Emily Davis's AD Credentials (EFS)"
 
   lifecycle {
     prevent_destroy = false
@@ -91,8 +91,8 @@ resource "random_password" "rpatel_password" {
 
 # Create a Secrets Manager entry for Raj Patel's credentials
 resource "aws_secretsmanager_secret" "rpatel_secret" {
-  name        = "rpatel_ad_credentials"
-  description = "Raj Patel's AD Credentials"
+  name        = "rpatel_ad_credentials_efs"
+  description = "Raj Patel's AD Credentials (EFS)"
 
   lifecycle {
     prevent_destroy = false
@@ -119,8 +119,8 @@ resource "random_password" "akumar_password" {
 
 # Create a Secrets Manager entry for Amit Kumar's credentials
 resource "aws_secretsmanager_secret" "akumar_secret" {
-  name        = "akumar_ad_credentials"
-  description = "Amit Kumar's AD Credentials"
+  name        = "akumar_ad_credentials_efs"
+  description = "Amit Kumar's AD Credentials (EFS)"
 
   lifecycle {
     prevent_destroy = false

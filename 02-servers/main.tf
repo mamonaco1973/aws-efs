@@ -1,51 +1,107 @@
-# Define the AWS provider and set the region to us-east-1 (N. Virginia)
-# Modify this if your deployment requires a different AWS region
+# ================================================================================
+# FILE: main.tf
+#
+# Purpose:
+#   - Configures the AWS provider for this stack.
+#   - Discovers required existing infrastructure by tags.
+#   - Locates Secrets Manager credentials and base AMIs.
+#
+# Scope:
+#   - AWS provider configuration.
+#   - Secrets Manager secret discovery for AD admin credentials.
+#   - VPC and subnet discovery via Name tags.
+#   - Windows Server 2022 AMI discovery.
+#
+# Notes:
+#   - Tag-based discovery assumes the network baseline exists already.
+#   - Ensure Name tags are unique within the target account/region.
+# ================================================================================
+ 
+# ================================================================================
+# AWS Provider Configuration
+# ================================================================================
 provider "aws" {
   region = "us-east-1"
 }
-
-# Fetch AWS Secrets Manager secrets for the AD admin user
-# These secrets store AD credentials for authentication purposes
-
-
+ 
+# ================================================================================
+# DATA: Secrets Manager - AD Admin Credentials
+# ================================================================================
+# Purpose:
+#   - Locates the secret storing AD admin credentials for authentication.
+# ================================================================================
 data "aws_secretsmanager_secret" "admin_secret" {
-  name = "admin_ad_credentials" # Secret name for the admin user in AWS Secrets Manager
+  name = "admin_ad_credentials_efs"
 }
-
-data "aws_subnet" "vm_subnet_1" {
-  filter {
-    name   = "tag:Name"      # Match based on the 'Name' tag
-    values = ["vm-subnet-1"] # Look for a subnet tagged as "vm-subnet-1"
-  }
-}
-
-data "aws_subnet" "ad_subnet" {
-  filter {
-    name   = "tag:Name"      # Match based on the 'Name' tag
-    values = ["ad-subnet"] # Look for a subnet tagged as "ad-subnet"
-  }
-}
-
-# Retrieve details of the AWS VPC where Active Directory components will be deployed
-# Uses a tag-based filter to locate the correct VPC
-
+ 
+# ================================================================================
+# DATA: VPC Discovery
+# ================================================================================
+# Purpose:
+#   - Locates the target VPC by Name tag.
+# ================================================================================
 data "aws_vpc" "ad_vpc" {
   filter {
     name   = "tag:Name"
-    values = ["ad-vpc"] # Look for a VPC tagged as "ad-vpc"
+    values = [var.vpc_name]
   }
 }
-
-# Fetch the most recent Windows Server 2022 AMI provided by AWS
-# This ensures we deploy the latest Windows Server OS image
-
-data "aws_ami" "windows_ami" {
-  most_recent = true       # Fetch the latest Windows Server AMI
-  owners      = ["amazon"] # AWS official account for Windows AMIs
-
+ 
+# ================================================================================
+# DATA: Subnet Discovery
+# ================================================================================
+# Purpose:
+#   - Locates required subnets by Name tag within the target VPC.
+#
+# Notes:
+#   - VPC scoping is enforced using the vpc-id filter.
+# ================================================================================
+ 
+# ------------------------------------------------------------------------------
+# DATA: aws_subnet.vm_subnet_1
+# ------------------------------------------------------------------------------
+data "aws_subnet" "vm_subnet_1" {
   filter {
-    name   = "name"                                      # Filter AMIs by name pattern
-    values = ["Windows_Server-2022-English-Full-Base-*"] # Match Windows Server 2022 AMI
+    name   = "vpc-id"
+    values = [data.aws_vpc.ad_vpc.id]
+  }
+ 
+  filter {
+    name   = "tag:Name"
+    values = ["vm-subnet-1"]
   }
 }
-
+ 
+# ------------------------------------------------------------------------------
+# DATA: aws_subnet.ad_subnet
+# ------------------------------------------------------------------------------
+data "aws_subnet" "ad_subnet" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.ad_vpc.id]
+  }
+ 
+  filter {
+    name   = "tag:Name"
+    values = ["ad-subnet"]
+  }
+}
+ 
+# ================================================================================
+# DATA: Windows Server 2022 AMI Discovery
+# ================================================================================
+# Purpose:
+#   - Locates the most recent AWS-provided Windows Server 2022 AMI.
+#
+# Notes:
+#   - Owner is restricted to Amazon to avoid untrusted AMI sources.
+# ================================================================================
+data "aws_ami" "windows_ami" {
+  most_recent = true
+  owners      = ["amazon"]
+ 
+  filter {
+    name   = "name"
+    values = ["Windows_Server-2022-English-Full-Base-*"]
+  }
+}

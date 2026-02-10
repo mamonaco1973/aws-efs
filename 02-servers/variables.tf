@@ -1,36 +1,69 @@
-# ==================================================================================================
-# Active Directory naming inputs
-# - dns_zone : FQDN for the AD DNS zone / domain (e.g., mcloud.mikecloud.com)
-# - realm    : Kerberos realm (typically the DNS zone in UPPERCASE)
-# - netbios  : Short (pre-Windows 2000) domain name used by legacy/NetBIOS-aware systems
-# ==================================================================================================
-
-# --------------------------------------------------------------------------------
-# DNS zone / AD domain (FQDN)
-# Used by Samba AD DC for DNS namespace and domain identity
-# --------------------------------------------------------------------------------
+# ================================================================================
+# Active Directory Naming Inputs
+# ================================================================================
+# Purpose:
+#   - Defines AD domain identity inputs used by Samba and Kerberos.
+#
+# Notes:
+#   - dns_zone is the AD DNS domain (FQDN).
+#   - realm is typically dns_zone in uppercase for Kerberos.
+#   - netbios is the short legacy domain name (<= 15 chars recommended).
+# ================================================================================
+ 
+# ------------------------------------------------------------------------------
+# VARIABLE: dns_zone
+# ------------------------------------------------------------------------------
+# Purpose:
+#   - Fully qualified DNS name for the AD domain.
+# ------------------------------------------------------------------------------
 variable "dns_zone" {
   description = "AD DNS zone / domain (e.g., mcloud.mikecloud.com)"
   type        = string
   default     = "mcloud.mikecloud.com"
 }
-
-# --------------------------------------------------------------------------------
-# Kerberos realm (UPPERCASE)
-# Convention: match dns_zone but uppercase; required by Kerberos config
-# --------------------------------------------------------------------------------
+ 
+# ------------------------------------------------------------------------------
+# VARIABLE: realm
+# ------------------------------------------------------------------------------
+# Purpose:
+#   - Kerberos realm for the AD domain.
+#
+# Notes:
+#   - Convention is to match dns_zone in uppercase.
+# ------------------------------------------------------------------------------
 variable "realm" {
-  description = "Kerberos realm (usually DNS zone in UPPERCASE, e.g., MCLOUD.MIKECLOUD.COM)"
+  description = "Kerberos realm (uppercase DNS domain)"
   type        = string
   default     = "MCLOUD.MIKECLOUD.COM"
 }
-
-# --------------------------------------------------------------------------------
-# NetBIOS short domain name
-# Typically <= 15 characters, uppercase alphanumerics; used by legacy clients and some SMB flows
-# --------------------------------------------------------------------------------
+ 
+# ------------------------------------------------------------------------------
+# VARIABLE: netbios
+# ------------------------------------------------------------------------------
+# Purpose:
+#   - Short NetBIOS domain name for legacy and SMB clients.
+#
+# Notes:
+#   - Recommended length is 15 characters or fewer.
+# ------------------------------------------------------------------------------
 variable "netbios" {
   description = "NetBIOS short domain name (e.g., MCLOUD)"
   type        = string
   default     = "MCLOUD"
+}
+ 
+# ================================================================================
+# Networking Inputs
+# ================================================================================
+ 
+# ------------------------------------------------------------------------------
+# VARIABLE: vpc_name
+# ------------------------------------------------------------------------------
+# Purpose:
+#   - Name tag used to locate or label the target VPC.
+# ------------------------------------------------------------------------------
+variable "vpc_name" {
+  description = "Name for the VPC"
+  type        = string
+  default     = "efs-vpc"
 }
