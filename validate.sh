@@ -8,7 +8,7 @@
 # Scope:
 #   - Looks up instances by Name tag:
 #       - windows-ad-admin
-#       - efs-client-instance
+#       - efs-client-gateway
 #   - Prints public DNS names for fast copy/paste access.
 #
 # Fast-Fail Behavior:
@@ -43,7 +43,7 @@ get_public_dns_by_name_tag() {
 # Lookups
 # ------------------------------------------------------------------------------
 windows_dns="$(get_public_dns_by_name_tag "windows-ad-admin")"
-linux_dns="$(get_public_dns_by_name_tag "efs-client-instance")"
+linux_dns="$(get_public_dns_by_name_tag "efs-client-gateway")"
  
 # ------------------------------------------------------------------------------
 # Quick Start Output
@@ -63,7 +63,7 @@ fi
 if [ -n "${linux_dns}" ] && [ "${linux_dns}" != "None" ]; then
   echo "NOTE: Linux SSH Host FQDN:  ${linux_dns}"
 else
-  echo "WARN: efs-client-instance not found or has no public DNS"
+  echo "WARN: efs-client-gateway not found or has no public DNS"
 fi
  
 echo ""
