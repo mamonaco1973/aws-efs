@@ -110,6 +110,21 @@ resource "aws_nat_gateway" "ad_nat" {
 }
 
 # ================================================================================
+# RESOURCE: time_sleep.wait_for_nat
+# ================================================================================
+# Purpose:
+#   - Forces a fixed stabilization delay after NAT Gateway creation.
+#
+# Notes:
+#   - AWS reports NAT as "available" before it is fully routable.
+#   - This avoids race conditions with route tables and instances.
+# ================================================================================
+resource "time_sleep" "wait_for_nat" {
+  depends_on = [aws_nat_gateway.ad_nat]
+  create_duration = "120s"
+}
+
+# ================================================================================
 # ROUTE TABLES
 # ================================================================================
 

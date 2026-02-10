@@ -49,8 +49,7 @@ module "mini_ad" {
   # Required for package repositories and initial configuration steps.
   # ------------------------------------------------------------------------------
   depends_on = [
-    aws_nat_gateway.ad_nat,
-    aws_route_table_association.rt_assoc_ad_private
+      time_sleep.wait_for_nat
   ]
 }
 
