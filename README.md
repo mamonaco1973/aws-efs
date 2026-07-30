@@ -124,7 +124,7 @@ When the deployment completes, the following resources are created:
   - Configured for multi-AZ availability and automatic scaling  
 
 - **Linux Client Instance:**  
-  - Domain-joined Ubuntu EC2 instance with SSSD integration  
+  - Domain-joined Ubuntu EC2 instance with Winbind integration  
   - Mounts EFS directly via NFS for testing POSIX file access  
   - Configured to expose the EFS mount as a **Samba share**, enabling Windows clients to access it  
 
@@ -163,7 +163,7 @@ As part of this project, when the domain controller is provisioned, a set of sam
 
 #### Understanding `uidNumber` and `gidNumber` for Linux Integration
 
-The **`uidNumber`** (User ID) and **`gidNumber`** (Group ID) attributes are critical when integrating **Active Directory** with **Linux systems**, particularly in environments where **SSSD** ([System Security Services Daemon](https://sssd.io/)) or similar services are used for identity management. These attributes allow Linux hosts to recognize and map Active Directory users and groups into the **POSIX** (Portable Operating System Interface) user and group model.
+The **`uidNumber`** (User ID) and **`gidNumber`** (Group ID) attributes are critical when integrating **Active Directory** with **Linux systems**, particularly when **Winbind** (via `idmap config ... : backend = ad`) or SSSD reads them directly from AD for identity management. These attributes allow Linux hosts to recognize and map Active Directory users and groups into the **POSIX** (Portable Operating System Interface) user and group model with authoritative, host-consistent IDs.
 
 ---
 
@@ -189,9 +189,9 @@ When the Linux instance boots, the [userdata script](02-servers/scripts/userdata
 
 - Update OS and install required packages  
 - Install AWS CLI  
-- Join the Active Directory domain with SSSD  
+- Join the Active Directory domain with Winbind (`realm join --client-software=winbind`)  
 - Enable password authentication for AD users  
-- Configure SSSD for AD integration  
+- Configure Winbind for AD integration (`idmap backend = ad`, RFC2307 POSIX attributes)  
 - Grant sudo privileges to the `linux-admins` group  
 - Sets up Samba and shares `/efs` for Windows access to EFS
 

@@ -21,7 +21,7 @@ systemctl start snap.amazon-ssm-agent.amazon-ssm-agent.service
 apt-get update -y
 export DEBIAN_FRONTEND=noninteractive
 apt-get install -y \
-  less unzip realmd sssd-ad sssd-tools libnss-sss libpam-sss adcli \
+  less unzip realmd adcli \
   samba samba-common-bin samba-libs oddjob oddjob-mkhomedir packagekit \
   krb5-user nano vim nfs-common winbind libpam-winbind libnss-winbind stunnel4
 
@@ -60,29 +60,26 @@ admin_password=$(echo "$secretValue" | jq -r '.password')
 admin_username=$(echo "$secretValue" | jq -r '.username' | sed 's/.*\\//')
 
 echo -e "$admin_password" | realm join \
+  --client-software=winbind \
   --membership-software=samba \
   -U "$admin_username" \
   ${domain_fqdn} \
-  --verbose 
+  --verbose
 
-# SSH + SSSD tweaks
+# SSH tweaks — identity is handled entirely by winbind via smb.conf below.
+# Short login names (jsmith, not jsmith@domain) come from "winbind use default
+# domain = yes"; home dir + shell come from the "template" lines in smb.conf.
 sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/' \
   /etc/ssh/sshd_config.d/60-cloudimg-settings.conf
 
-sed -i 's/use_fully_qualified_names = True/use_fully_qualified_names = False/' \
-  /etc/sssd/sssd.conf
-sed -i 's/ldap_id_mapping = True/ldap_id_mapping = False/' \
-  /etc/sssd/sssd.conf
-sed -i 's|fallback_homedir = /home/%u@%d|fallback_homedir = /home/%u|' \
-  /etc/sssd/sssd.conf
-
 touch /etc/skel/.Xauthority
 chmod 600 /etc/skel/.Xauthority
-pam-auth-update --enable mkhomedir
+# Enable pam_winbind (domain auth) and auto-create home dirs on first login
+pam-auth-update --enable winbind --enable mkhomedir
 systemctl restart ssh
 
-# Samba
-systemctl stop sssd
+# Samba — stop winbind while we lay down our tuned smb.conf
+systemctl stop winbind
 
 cat > /tmp/smb.conf <<EOF
 [global]
@@ -115,7 +112,14 @@ force group = ${force_group}
 
 realm = ${realm}
 
-idmap config ${realm} : backend = sss
+# Read POSIX uidNumber/gidNumber straight from AD (RFC2307) so UIDs are
+# authoritative and identical across every host and the file share — the same
+# result the old SSSD ldap_id_mapping=False gave us, but winbind does it alone.
+# unix_nss_info = no: users.json sets uid/gid but NOT loginShell, so fall back
+# to the "template shell/homedir" above instead of AD's (empty) shell attribute.
+idmap config ${realm} : backend = ad
+idmap config ${realm} : schema_mode = rfc2307
+idmap config ${realm} : unix_nss_info = no
 idmap config ${realm} : range = 10000-1999999999
 idmap config * : backend = tdb
 idmap config * : range = 1-9999
@@ -151,19 +155,18 @@ export netbios="$${value^^}"
 sed -i "s/#netbios/netbios name=$netbios/" /etc/samba/smb.conf
 
 cat > /tmp/nsswitch.conf <<EOF
-passwd:     files sss winbind
-group:      files sss winbind
-automount:  files sss winbind
-shadow:     files sss winbind
+passwd:     files winbind
+group:      files winbind
+shadow:     files winbind
 hosts:      files dns myhostname
-services:   files sss
-netgroup:   files sss
+services:   files
+netgroup:   nis
 EOF
 
 cp /tmp/nsswitch.conf /etc/nsswitch.conf
 rm /tmp/nsswitch.conf
 
-systemctl restart winbind smb nmb sssd
+systemctl restart winbind smb nmb
 
 # Sudo + permissions
 echo "%linux-admins ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/10-linux-admins
