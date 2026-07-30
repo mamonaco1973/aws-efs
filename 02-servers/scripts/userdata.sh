@@ -103,7 +103,6 @@ kerberos method = secrets and keytab
 
 template homedir = /home/%U
 template shell = /bin/bash
-#netbios
 
 create mask = 0770
 force create mode = 0770
@@ -120,9 +119,15 @@ realm = ${realm}
 # fail to resolve. (SSSD hid this before because it, not winbind, did nss.)
 # unix_nss_info = no: users.json sets uid/gid but NOT loginShell, so fall back
 # to the "template shell/homedir" above instead of AD's (empty) shell attribute.
+# unix_primary_group = yes: take the primary group from the user's own gidNumber
+# (like SSSD did), NOT from the Windows primaryGroupID. Without this, winbind
+# derives the primary GID from "Domain Users" (RID 513), which has no gidNumber,
+# so users fail to resolve (wbinfo -i -> WBC_ERR_DOMAIN_NOT_FOUND). This is the
+# key winbind-vs-SSSD difference for RFC2307 POSIX mapping.
 idmap config ${netbios} : backend = ad
 idmap config ${netbios} : schema_mode = rfc2307
 idmap config ${netbios} : unix_nss_info = no
+idmap config ${netbios} : unix_primary_group = yes
 idmap config ${netbios} : range = 10000-1999999999
 idmap config * : backend = tdb
 idmap config * : range = 1-9999
@@ -135,7 +140,6 @@ winbind enum groups = yes
 winbind enum users = yes
 winbind cache time = 30
 idmap cache time = 60
-winbind negative cache time = 0
 
 [homes]
 browseable = no
@@ -151,11 +155,12 @@ EOF
 cp /tmp/smb.conf /etc/samba/smb.conf
 rm /tmp/smb.conf
 
-head /etc/hostname -c 15 > /tmp/netbios-name
-value=$(</tmp/netbios-name)
-value=$(echo "$value" | tr -d '-' | tr '[:lower:]' '[:upper:]')
-export netbios="$${value^^}"
-sed -i "s/#netbios/netbios name=$netbios/" /etc/samba/smb.conf
+# NOTE: do NOT override "netbios name". realmd/net ads join registered the
+# machine account under the default hostname-derived NetBIOS name, and winbind
+# authenticates its secure channel with that exact name. Overriding it here
+# breaks the machine trust (wbinfo -t -> NT_STATUS_LOGON_FAILURE) and nothing
+# resolves. SSSD tolerated it before because it used the keytab, not winbind's
+# secrets.tdb.
 
 cat > /tmp/nsswitch.conf <<EOF
 passwd:     files winbind
