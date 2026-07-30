@@ -115,12 +115,15 @@ realm = ${realm}
 # Read POSIX uidNumber/gidNumber straight from AD (RFC2307) so UIDs are
 # authoritative and identical across every host and the file share — the same
 # result the old SSSD ldap_id_mapping=False gave us, but winbind does it alone.
+# IMPORTANT: idmap stanzas are keyed by the NetBIOS/workgroup name (e.g. MCLOUD),
+# NOT the DNS/Kerberos realm. Keying it on the realm silently no-ops and users
+# fail to resolve. (SSSD hid this before because it, not winbind, did nss.)
 # unix_nss_info = no: users.json sets uid/gid but NOT loginShell, so fall back
 # to the "template shell/homedir" above instead of AD's (empty) shell attribute.
-idmap config ${realm} : backend = ad
-idmap config ${realm} : schema_mode = rfc2307
-idmap config ${realm} : unix_nss_info = no
-idmap config ${realm} : range = 10000-1999999999
+idmap config ${netbios} : backend = ad
+idmap config ${netbios} : schema_mode = rfc2307
+idmap config ${netbios} : unix_nss_info = no
+idmap config ${netbios} : range = 10000-1999999999
 idmap config * : backend = tdb
 idmap config * : range = 1-9999
 
@@ -171,6 +174,18 @@ systemctl restart winbind smb nmb
 # Sudo + permissions
 echo "%linux-admins ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/10-linux-admins
 sed -i 's/^\(\s*HOME_MODE\s*\)[0-9]\+/\10700/' /etc/login.defs
+
+# Winbind can take a few seconds after restart to connect to the DC and start
+# resolving domain identities. Wait until it's actually resolving a known user
+# before we touch domain accounts, so the su checks below don't race the start.
+for i in $(seq 1 30); do
+  if wbinfo --ping-dc >/dev/null 2>&1 && getent passwd rpatel >/dev/null 2>&1; then
+    echo "winbind is resolving domain users."
+    break
+  fi
+  echo "waiting for winbind to resolve domain users ($i/30)..."
+  sleep 2
+done
 
 su -c "exit" rpatel
 su -c "exit" jsmith
