@@ -138,6 +138,11 @@ winbind refresh tickets = yes
 winbind offline logon = yes
 winbind enum groups = yes
 winbind enum users = yes
+# Enumerate group members in getent group (the reverse group->user lookup is
+# OFF by default in winbind — id/sudo work without it, but getent group shows
+# empty member lists). With unix_primary_group=yes this also lists primary-group
+# members, so getent group matches what SSSD returned.
+winbind expand groups = 1
 winbind cache time = 30
 idmap cache time = 60
 
