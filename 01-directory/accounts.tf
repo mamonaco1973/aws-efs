@@ -17,7 +17,27 @@
 #   - Usernames are constructed using the NetBIOS domain prefix.
 #   - This file is intentionally explicit (non-dynamic) for clarity in
 #     instructional and demo environments.
+#   - Every password is force-prefixed with "A" (see locals below).
 # ==============================================================================
+
+
+# ==============================================================================
+# PASSWORD ASSEMBLY
+# ==============================================================================
+# random_password can emit a leading "-", which downstream consumers parse as a
+# command-line flag instead of a value (realm join -U, net ads, PowerShell).
+# Prefixing a literal "A" guarantees the first character is alphanumeric and
+# also satisfies the AD complexity rule for an uppercase character.
+# The random half is 23 chars so the assembled password stays 24.
+# ==============================================================================
+
+locals {
+  admin_password  = "A${random_password.admin_password.result}"
+  jsmith_password = "A${random_password.jsmith_password.result}"
+  edavis_password = "A${random_password.edavis_password.result}"
+  rpatel_password = "A${random_password.rpatel_password.result}"
+  akumar_password = "A${random_password.akumar_password.result}"
+}
 
 
 # ==============================================================================
@@ -28,7 +48,7 @@
 # Generate a random password for the AD Administrator account
 # ------------------------------------------------------------------------------
 resource "random_password" "admin_password" {
-  length           = 24   # Total password length
+  length           = 23   # 23 + the "A" prefix = 24 total
   special          = true # Include special characters
   override_special = "_-" # Restrict special characters to safe set
 }
@@ -53,7 +73,7 @@ resource "aws_secretsmanager_secret_version" "admin_secret_version" {
 
   secret_string = jsonencode({
     username = "${var.netbios}\\Admin"
-    password = random_password.admin_password.result
+    password = local.admin_password
   })
 }
 
@@ -67,7 +87,7 @@ resource "aws_secretsmanager_secret_version" "admin_secret_version" {
 # ------------------------------------------------------------------------------
 
 resource "random_password" "jsmith_password" {
-  length           = 24
+  length           = 23 # 23 + the "A" prefix = 24 total
   special          = true
   override_special = "!@#$%"
 }
@@ -86,7 +106,7 @@ resource "aws_secretsmanager_secret_version" "jsmith_secret_version" {
 
   secret_string = jsonencode({
     username = "${var.netbios}\\jsmith"
-    password = random_password.jsmith_password.result
+    password = local.jsmith_password
   })
 }
 
@@ -96,7 +116,7 @@ resource "aws_secretsmanager_secret_version" "jsmith_secret_version" {
 # ------------------------------------------------------------------------------
 
 resource "random_password" "edavis_password" {
-  length           = 24
+  length           = 23 # 23 + the "A" prefix = 24 total
   special          = true
   override_special = "!@#$%"
 }
@@ -115,7 +135,7 @@ resource "aws_secretsmanager_secret_version" "edavis_secret_version" {
 
   secret_string = jsonencode({
     username = "${var.netbios}\\edavis"
-    password = random_password.edavis_password.result
+    password = local.edavis_password
   })
 }
 
@@ -125,7 +145,7 @@ resource "aws_secretsmanager_secret_version" "edavis_secret_version" {
 # ------------------------------------------------------------------------------
 
 resource "random_password" "rpatel_password" {
-  length           = 24
+  length           = 23 # 23 + the "A" prefix = 24 total
   special          = true
   override_special = "!@#$%"
 }
@@ -144,7 +164,7 @@ resource "aws_secretsmanager_secret_version" "rpatel_secret_version" {
 
   secret_string = jsonencode({
     username = "${var.netbios}\\rpatel"
-    password = random_password.rpatel_password.result
+    password = local.rpatel_password
   })
 }
 
@@ -154,7 +174,7 @@ resource "aws_secretsmanager_secret_version" "rpatel_secret_version" {
 # ------------------------------------------------------------------------------
 
 resource "random_password" "akumar_password" {
-  length           = 24
+  length           = 23 # 23 + the "A" prefix = 24 total
   special          = true
   override_special = "!@#$%"
 }
@@ -173,6 +193,6 @@ resource "aws_secretsmanager_secret_version" "akumar_secret_version" {
 
   secret_string = jsonencode({
     username = "${var.netbios}\\akumar"
-    password = random_password.akumar_password.result
+    password = local.akumar_password
   })
 }
